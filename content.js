@@ -103,8 +103,6 @@
     ["card-caminatas", "Ícono tarjeta Caminatas", "🥾"],
     ["card-rumba", "Ícono tarjeta Rumba", "🪩"],
     ["card-comida", "Ícono tarjeta Comida y más", "🍔"],
-    ["chat-foto", "Foto de ejemplo en el chat", "assets/logo.jpg"],
-    ["mem-m0", "Foto de ejemplo en Recuerdos", "assets/logo.jpg"],
   ];
 
   const CATS = [
@@ -115,17 +113,8 @@
     { name: "Chill", icon: "🎲", tag: "comida" }, { name: "Otro", icon: "✨", tag: "otro" },
   ];
 
-  // Parches oficiales de ejemplo
-  const PLANS = [
-    { id: "s1", cat: "Mirador", title: "Atardecer en el mirador", date: inDays(3), time: "16:30", address: "Estación Santo Domingo, Metrocable, Medellín", meet: "Salida de la estación del metrocable", desc: "Subimos, vemos caer el sol y nos quedamos pa' ver la ciudad prendida. Lleva chaqueta.", img: "assets/logo.jpg", going: 18, votes: 41, initials: ["LC", "JM", "SA"], author: "Mono Mod 🛡️" },
-    { id: "s2", cat: "Caminata", title: "Caminata a la cascada", date: inDays(6), time: "07:00", address: "Parque Ecológico Piedras Blancas, Guarne", meet: "Nivel medio · 3 h ida y vuelta", desc: "Sendero entre bosque hasta una cascada brutal. Tenis con buen agarre, agua y fiambre.", going: 24, votes: 33, initials: ["VR", "DP", "KT"], author: "La Caminante" },
-    { id: "s3", cat: "Rumba", title: "Noche de karaoke y rumba", date: inDays(9), time: "20:00", address: "Parque Lleras, El Poblado, Medellín", meet: "Bar aliado · cover incluido con el parche", desc: "Cantamos mal pero con toda. Luego salsa y reguetón. Todos llegamos y nos vamos juntos.", going: 32, votes: 52, initials: ["MA", "NB", "CR"], author: "Vale 🌸",
-      poll: { q: "¿Qué música ponemos primero?", options: [{ t: "Salsa 💃", v: 14 }, { t: "Reguetón 🔥", v: 19 }, { t: "Crossover 🎶", v: 9 }] } },
-    { id: "s4", cat: "Comida", title: "Food tour callejero", date: inDays(12), time: "17:00", address: "Parque Berrío, Centro, Medellín", meet: "5 paradas", desc: "Empanadas, arepas de choclo, salpicón y algo más. Cada quien paga lo suyo, sin estrés.", going: 15, votes: 27, initials: ["AG", "PL", "TO"], author: "Santi" },
-    { id: "s5", cat: "Paseo", title: "Paseo de olla al río", date: inDays(16), time: "08:00", address: "Terminal del Norte, Medellín", meet: "Salimos en bus desde la terminal", desc: "Sancocho en leña, charco y parlante. Cada uno pone algo pa' la olla. Plan de domingo full.", going: 21, votes: 30, initials: ["JD", "LM", "FS"], author: "Juanchito",
-      poll: { q: "¿Qué día les queda mejor?", options: [{ t: "Sábado", v: 8 }, { t: "Domingo", v: 17 }] } },
-    { id: "s6", cat: "Chill", title: "Juegos de mesa + pizza", date: inDays(19), time: "18:30", address: "Laureles, Medellín", meet: "Café de juegos aliado", desc: "Catan, Uno, Jenga y risas. Ideal si es tu primer parche y quieres conocer gente tranqui.", going: 12, votes: 19, initials: ["SR", "AM", "EV"], author: "Vale 🌸" },
-  ];
+  // Parches oficiales: empieza vacío (los crean los admins en la pestaña Parches)
+  const PLANS = [];
 
   // type: "choice" (respuesta concreta), "yesno" (Sí / No), "tf" (Verdadero / Falso)
   const QUIZ = [
@@ -164,16 +153,10 @@
     { id: "prueba", emoji: "🧪", name: "En prueba", color: "#ff9f3d", perms: { pin: false, poll: false, media: false, plans: false }, fixed: true },
   ];
 
-  // Miembros del parche (los del chat de ejemplo).
-  // demo: true = personaje de ejemplo: NO cuenta en las cifras (Parceros, Respeto…)
-  const MEMBERS = [
-    { nick: "Mono Mod 🛡️", role: "fundador", color: "#b14dff", status: "activo", joinedAt: "2025-01-10", demo: true },
-    { nick: "Vale 🌸", role: "moderador", color: "#ff7ad9", status: "activo", joinedAt: "2025-03-02", demo: true },
-    { nick: "La Caminante", role: "org", color: "#3dffd0", status: "activo", joinedAt: "2025-04-18", demo: true },
-    { nick: "Juanchito", role: "miembro", color: "#f5ff3d", status: "activo", joinedAt: "2025-06-21", demo: true },
-    { nick: "Santi", role: "prueba", color: "#ff9f3d", status: "activo", joinedAt: "2026-11-15", trialUntil: inDays(8), recommendedBy: "Vale 🌸", demo: true },
-  ];
-  const DEMO_NICKS = MEMBERS.map((m) => m.nick.toLowerCase());
+  // Miembros del parche: empieza vacío (entran cuando los admins aceptan solicitudes)
+  const MEMBERS = [];
+  // apodos de los personajes de ejemplo que había antes: nunca cuentan en las cifras
+  const DEMO_NICKS = ["mono mod 🛡️", "vale 🌸", "la caminante", "juanchito", "santi"];
 
   const SETTINGS = {
     AGE_MIN: 18,
@@ -192,6 +175,25 @@
   /* ---- Datos efectivos: navegador del admin (vista previa) > site-data.js (publicado) > por defecto ---- */
   const SD = window.SITE_DATA || {};
   const ls = (k) => { try { const v = localStorage.getItem(k); return v == null ? null : JSON.parse(v); } catch { return null; } };
+
+  /* Reinicio a cero (una sola vez por navegador).
+     Se conserva: roles, reglas (textos rules.* / ruleN.*), el test, cuentas/clave del panel, ajustes de seguridad y bloqueos por edad.
+     Se borra: miembros, solicitudes, reportes, parches, recuerdos, chat, imágenes y demás textos. */
+  const RESET_VERSION = "2026-11-22b";
+  try {
+    if (localStorage.getItem("pm_reset") !== RESET_VERSION) {
+      const KEEP = ["pm_roles", "pm_quiz", "pm_settings", "pm_admin_accounts", "pm_admin_pin_hash", "pm_blocked", "pm_blocked_reason", "pm_blocked_ips"];
+      const texts = ls("pm_texts");
+      Object.keys(localStorage).filter((k) => k.startsWith("pm_") && !KEEP.includes(k)).forEach((k) => localStorage.removeItem(k));
+      if (texts) {
+        const rules = Object.fromEntries(Object.entries(texts).filter(([k]) => /^rules?\d*\./.test(k)));
+        if (Object.keys(rules).length) localStorage.setItem("pm_texts", JSON.stringify(rules));
+      }
+      try { indexedDB.deleteDatabase("parchemonos"); } catch { /* */ }
+      try { sessionStorage.removeItem("pm_admin_tab"); } catch { /* */ }
+      localStorage.setItem("pm_reset", RESET_VERSION);
+    }
+  } catch { /* modo privado */ }
 
   // Migración: roles viejos (Admin / Moderador) → nuevos roles del staff
   const OLD_ROLE = { admin: "fundador", mod: "moderador" };
