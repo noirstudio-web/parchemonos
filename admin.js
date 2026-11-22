@@ -172,6 +172,7 @@
   function showAdmin() {
     pinView.hidden = true;
     adminView.hidden = false;
+    $("#wipeBox").hidden = myRank() < RANK.cofundador;
     const r = roleById(current.role);
     $("#meUser").textContent = current.user;
     $("#meRole").innerHTML = roleChip(current.role);
@@ -510,7 +511,7 @@
     state.roles.push({ id: `r${Date.now().toString(36)}`, emoji: "⭐", name: "Nuevo rol", color: "#5ab0ff", perms: { pin: false, poll: true, media: true, plans: false } });
     save("roles");
     renderRoles();
-    $$("#roleRows [data-rname]").at(-1)?.select();
+    $$("#roleRows [data-rname]").slice(-1)[0]?.select();
   });
   $("#rolesReset").addEventListener("click", () => {
     if (!confirm("¿Volver a los roles originales? Quien tenga un rol creado por ti pasa a Miembro.")) return;
@@ -826,7 +827,7 @@
     $("#pmAddr").value = p?.address || "";
     $("#pmMeet").value = p?.meet || "";
     $("#pmDesc").value = p?.desc || "";
-    $("#pmAuthor").value = p?.author || "Mono Mod 🛡️";
+    $("#pmAuthor").value = p?.author || "Admins 👑";
     $("#pmGoing").value = p?.going ?? 0;
     $("#pmVotes").value = p?.votes ?? 0;
     setPmImg(p ? planImg(p) || null : null);
@@ -859,7 +860,7 @@
       poll = { q: v("#pmPollQ"), options };
     }
     const cap = parseInt(v("#pmCap"), 10);
-    const author = v("#pmAuthor") || "Mono Mod 🛡️";
+    const author = v("#pmAuthor") || "Admins 👑";
     const data = {
       id: editing?.id || `a${Date.now().toString(36)}`,
       cat: $("#pmCat").value, title, date, time, address,
@@ -972,8 +973,8 @@
     state.quiz.push({ type: "yesno", q: "", a: "Sí" });
     save("quiz");
     renderers.test();
-    $$(".q").at(-1)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    $$(".q [data-qtext]").at(-1)?.focus({ preventScroll: true });
+    $$(".q").slice(-1)[0]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    $$(".q [data-qtext]").slice(-1)[0]?.focus({ preventScroll: true });
   });
   $("#quizReset").addEventListener("click", () => {
     if (!confirm("¿Volver a las 10 preguntas originales?")) return;
@@ -1015,7 +1016,7 @@
     state.stickers.push({ e: "😎", t: "Nuevo" });
     save("stickers");
     renderers.chat();
-    $$("#stkRows [data-st]").at(-1)?.select();
+    $$("#stkRows [data-st]").slice(-1)[0]?.select();
   });
   $("#stkReset").addEventListener("click", () => { state.stickers = clone(D.STICKERS); save("stickers"); renderers.chat(); toast("↺ Stickers originales"); });
   $("#blockedWords").addEventListener("input", (e) => {
@@ -1303,6 +1304,28 @@
     Object.values(KEYS).forEach((k) => { try { localStorage.removeItem(k); } catch { /* */ } });
     toast("🧹 Cambios descartados");
     setTimeout(() => location.reload(), 600);
+  });
+
+  // Empezar desde cero: borra todo menos roles, reglas, test, cuentas y seguridad
+  $("#wipeBtn").addEventListener("click", () => {
+    if (myRank() < RANK.cofundador) { toast("🔒 Solo el Fundador o el Co Fundador pueden hacer esto."); return; }
+    if (!confirm("¿Borrar TODO y empezar de cero?\n\nSe borran miembros, solicitudes, reportes, parches, recuerdos, imágenes y textos.\nSe conservan roles, reglas, test, cuentas del panel y seguridad.")) return;
+    if (prompt('Para confirmar escribe: BORRAR') !== "BORRAR") { toast("Cancelado: no se borró nada."); return; }
+    const KEEP = ["pm_roles", "pm_quiz", "pm_settings", ACC_KEY, "pm_admin_pin_hash", "pm_blocked", "pm_blocked_reason", "pm_blocked_ips", "pm_reset"];
+    const rules = Object.fromEntries(Object.entries(state.texts || {}).filter(([k]) => /^rules?\d*\./.test(k)));
+    try {
+      Object.keys(localStorage).filter((k) => k.startsWith("pm_") && !KEEP.includes(k)).forEach((k) => localStorage.removeItem(k));
+      // vacío explícito para que no vuelvan los de site-data.js
+      lsSet(KEYS.members, []);
+      lsSet(KEYS.plans, []);
+      lsSet(KEYS.imgs, {});
+      lsSet(KEYS.texts, rules);
+      lsSet(KEYS.roles, state.roles);
+      lsSet(KEYS.quiz, state.quiz);
+    } catch { /* */ }
+    try { indexedDB.deleteDatabase("parchemonos"); } catch { /* */ }
+    toast("🧨 Listo: todo quedó en cero");
+    setTimeout(() => location.reload(), 800);
   });
 
   document.addEventListener("keydown", (e) => {
