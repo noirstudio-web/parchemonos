@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Panel de admins · ParchéMonos</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#07040d" />
+  <link rel="icon" href="assets/logo.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Permanent+Marker&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { overflow-x: hidden; }
+    .admin { padding: 20px 0 80px; min-height: 100svh; }
+    .admin__top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .admin__top img { width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 0 2px var(--pink), var(--glow-pink); }
+    .admin__top h1 { margin: 0; font-family: var(--brush); font-weight: 400; font-size: clamp(1.5rem, 6vw, 2.1rem); line-height: 1.1; }
+    .admin__top h1 i { font-style: normal; color: var(--lime); }
+    .admin__top .spacer { flex: 1; }
+    .admin__top .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* Pestañas */
+    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 22px; padding: 4px 16px 10px; position: sticky; top: 0; z-index: 20; background: linear-gradient(180deg, var(--bg) 80%, transparent); }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); font-weight: 600; font-size: .9rem; color: var(--muted); white-space: nowrap; }
+    .tab:hover { color: var(--text); }
+    .tab.is-active { color: #14001c; background: var(--lime); border-color: var(--lime); box-shadow: 0 0 16px rgba(245,255,61,.35); }
+    .tab b { font-size: .72rem; padding: 1px 7px; border-radius: 999px; background: var(--pink); color: #fff; }
+    .tab.is-active b { background: #14001c; color: var(--lime); }
+
+    .pane[hidden] { display: none !important; }
+    .pane__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .pane__head h2 { margin: 0; font-family: var(--brush); font-weight: 400; font-size: 1.8rem; transform: rotate(-1.5deg); }
+    .pane__head p { margin: 4px 0 0; color: var(--muted); font-size: .92rem; max-width: 60ch; }
+    .pane__head .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .box { padding: 18px; border-radius: 20px; background: linear-gradient(180deg, var(--surface), var(--bg-2)); border: 1px solid var(--line); margin-bottom: 14px; }
+    .box h3 { margin: 0 0 12px; font-size: 1.05rem; }
+    .grid2 { display: grid; gap: 12px; }
+    .note { margin: 0 0 18px; padding: 12px 16px; border-radius: 14px; font-size: .88rem; color: #ffe9a8; background: rgba(245,255,61,.06); border: 1px solid rgba(245,255,61,.25); }
+    .note--ok { color: #b9ffd9; background: rgba(61,255,154,.06); border-color: rgba(61,255,154,.3); }
+    .saved { font-size: .78rem; color: #9ff5c8; opacity: 0; transition: opacity .3s; }
+    .saved.is-on { opacity: 1; }
+    .field small.hint { display: block; margin-top: 4px; font-size: .78rem; color: var(--muted); }
+    .field textarea { min-height: 70px; }
+    .field-inline { display: flex; gap: 8px; align-items: flex-start; }
+    .field-inline > :first-child { flex: 1; min-width: 0; }
+    .icon-mini { flex: 0 0 auto; width: 42px; height: 46px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--muted); }
+    .icon-mini:hover { color: var(--pink); border-color: var(--pink); }
+    .is-changed > .field__label::after { content: " · editado"; color: var(--lime); font-weight: 700; }
+
+    /* Resumen */
+    .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 22px; }
+    .kpi { padding: 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); text-align: left; }
+    button.kpi:hover { border-color: var(--pink); }
+    .kpi b { display: block; font-family: var(--brush); font-weight: 400; font-size: 2.2rem; line-height: 1; color: var(--lime); }
+    .kpi span { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+    .kpi--pink b { color: var(--pink); }
+
+    /* Textos */
+    .tgroup { border-radius: 20px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 12px; overflow: hidden; }
+    .tgroup summary { cursor: pointer; padding: 16px 18px; font-weight: 700; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    .tgroup summary::-webkit-details-marker { display: none; }
+    .tgroup summary::after { content: "＋"; color: var(--pink); }
+    .tgroup[open] summary::after { content: "－"; }
+    .tgroup__body { padding: 0 18px 8px; display: grid; gap: 4px; }
+
+    /* Imágenes */
+    .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .slot { border-radius: 18px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; }
+    .slot__prev { aspect-ratio: 16 / 10; display: grid; place-items: center; background: #0b0614; font-size: 3.4rem; }
+    .slot__prev img { width: 100%; height: 100%; object-fit: cover; }
+    .slot__body { padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .slot__body b { font-size: .9rem; }
+    .slot__btns { display: flex; gap: 6px; margin-top: auto; }
+    .slot__btns .btn { flex: 1; --pad: 8px 10px; font-size: .82rem; }
+
+    /* Listas de parches / preguntas / recuerdos */
+    .rows { display: grid; gap: 10px; }
+    .row { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+    .row__img { width: 64px; height: 64px; border-radius: 12px; overflow: hidden; background: #150a26; display: grid; place-items: center; font-size: 1.8rem; }
+    .row__img img, .row__img video { width: 100%; height: 100%; object-fit: cover; }
+    .row__main { min-width: 0; }
+    .row__main b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row__main small { color: var(--muted); font-size: .82rem; }
+    .row__btns { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+    .row__btns .btn { --pad: 7px 12px; font-size: .82rem; }
+    .btn--danger { color: #fff; background: rgba(255,80,80,.18); box-shadow: 0 0 0 1.5px rgba(255,107,107,.6) inset; }
+    .btn--danger:hover { background: rgba(255,80,80,.3); }
+
+    .q { padding: 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); margin-bottom: 12px; }
+    .q__head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .q__num { font-family: var(--brush); font-size: 1.5rem; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .q__head select { flex: 1; min-width: 160px; }
+    .q select, .q input[type=text] { padding: 10px 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.12); background: rgba(0,0,0,.35); color: var(--text); font: inherit; font-size: 15px; color-scheme: dark; width: 100%; }
+    .q select:focus, .q input:focus { outline: none; border-color: var(--pink); }
+    .q__opts { display: grid; gap: 6px; margin-top: 8px; }
+    .q__opt { display: flex; gap: 8px; align-items: center; }
+    .q__opt input[type=radio] { accent-color: var(--lime); width: 20px; height: 20px; flex: 0 0 auto; }
+    .q__opt label { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+
+    .stk-rows { display: grid; gap: 8px; }
+    .stk-row { display: grid; grid-template-columns: 70px 1fr 42px; gap: 8px; }
+    .stk-row input { padding: 10px 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.12); background: rgba(0,0,0,.35); color: var(--text); font: inherit; font-size: 16px; min-width: 0; }
+    .stk-row input:first-child { text-align: center; font-size: 1.3rem; }
+
+    .switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 600; }
+    .switch input { appearance: none; -webkit-appearance: none; width: 48px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.15); position: relative; cursor: pointer; transition: background .2s; flex: 0 0 auto; }
+    .switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease); }
+    .switch input:checked { background: var(--grad-pv); }
+    .switch input:checked::after { transform: translateX(20px); }
+
+    /* Reportes (igual que antes) */
+    .tools { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+    .tools input { width: 100%; height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.12); background: rgba(0,0,0,.3); color: var(--text); font: inherit; font-size: 16px; }
+    .tools input:focus { outline: none; border-color: var(--pink); }
+    .reports { display: grid; gap: 14px; }
+    .rep { position: relative; padding: 18px; border-radius: 20px; background: linear-gradient(180deg, var(--surface), var(--bg-2)); border: 1px solid var(--line); border-left: 4px solid var(--pink); }
+    .rep[data-status="revision"] { border-left-color: var(--lime); }
+    .rep[data-status="resuelto"] { border-left-color: #3dffd0; opacity: .8; }
+    .rep[data-status="expulsado"] { border-left-color: #ff6b6b; }
+    .rep__head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .rep__who { font-size: 1.15rem; font-weight: 700; margin-right: auto; }
+    .tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border: 1px solid; }
+    .tag--priv { color: #d4b3ff; border-color: rgba(177,77,255,.5); background: rgba(177,77,255,.12); }
+    .tag--pub { color: var(--lime); border-color: rgba(245,255,61,.45); background: rgba(245,255,61,.08); }
+    .tag--st { color: #fff; border-color: rgba(255,255,255,.2); }
+    .rep__reason { margin: 0 0 6px; font-weight: 600; color: var(--pink); }
+    .rep__meta { margin: 0 0 10px; font-size: .84rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .rep__details { margin: 0 0 10px; white-space: pre-wrap; color: #e5dcf5; }
+    .rep__quote { margin: 0 0 10px; padding: 10px 14px; border-left: 3px solid var(--violet); border-radius: 10px; background: rgba(177,77,255,.08); font-size: .9rem; }
+    .rep__quote small { display: block; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--violet); font-weight: 700; }
+    .rep__img { display: block; max-width: 220px; border-radius: 12px; margin-bottom: 10px; cursor: zoom-in; border: 0; padding: 0; background: #000; }
+    .rep__img img { border-radius: 12px; }
+    .rep__actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px dashed var(--line); }
+    .rep__actions .btn { --pad: 8px 14px; font-size: .85rem; }
+    .empty { text-align: center; padding: 40px 16px; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 20px; }
+    .empty b { display: block; font-size: 2.4rem; margin-bottom: 8px; }
+
+    /* Solicitudes, miembros y roles */
+    .req { border-left-color: var(--lime); }
+    .req[data-status="aceptado"] { border-left-color: #3dffd0; }
+    .req[data-status="rechazado"] { border-left-color: #ff6b6b; opacity: .8; }
+    .req__nick { display: flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 800; margin-right: auto; }
+    .dot-c { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; box-shadow: 0 0 10px currentColor; }
+    .req__intro { margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,.04); font-size: .92rem; white-space: pre-wrap; }
+    .tag--reco { color: #3dffd0; border-color: rgba(61,255,208,.5); background: rgba(61,255,208,.08); }
+    .trial-days { width: 70px; padding: 8px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,.15); background: rgba(0,0,0,.35); color: var(--text); font: inherit; text-align: center; }
+    .member { grid-template-columns: 1fr; }
+    .member__top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .member__nick { font-weight: 800; display: flex; align-items: center; gap: 8px; margin-right: auto; }
+    .member select { padding: 8px 10px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,.15); background: rgba(0,0,0,.35); color: var(--text); font: inherit; font-size: .9rem; color-scheme: dark; }
+    .member__info { font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .member.is-banned { opacity: .6; }
+    /* Tarjetas de roles (más específico que .row para que no lo pise el media query) */
+    .rows .role-row { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 14px 14px 18px; position: relative; overflow: hidden; border-color: color-mix(in srgb, var(--rc) 28%, var(--line)); background: linear-gradient(90deg, color-mix(in srgb, var(--rc) 9%, transparent), transparent 55%), var(--surface); }
+    .rows .role-row::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--rc); box-shadow: 0 0 14px var(--rc); }
+    .role-row__top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .role-row input[type=text] { height: 46px; padding: 0 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.12); background: rgba(0,0,0,.35); color: var(--text); font: inherit; font-size: 16px; min-width: 0; transition: border-color .2s; }
+    .role-row input[type=text]:focus { outline: none; border-color: var(--rc); }
+    .role-row input[data-remoji] { width: 52px; flex: 0 0 52px; padding: 0; text-align: center; font-size: 1.35rem; }
+    .role-row input[data-rname] { flex: 1 1 auto; font-weight: 800; color: var(--rc); }
+    .role-row input[type=color] { flex: 0 0 auto; width: 46px; height: 46px; padding: 0; border: 0; border-radius: 12px; background: none; cursor: pointer; }
+    .role-row input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+    .role-row input[type=color]::-webkit-color-swatch { border: 2px solid rgba(255,255,255,.2); border-radius: 12px; }
+    .role-row input[type=color]::-moz-color-swatch { border: 2px solid rgba(255,255,255,.2); border-radius: 12px; }
+    .role-row__meta { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+    .role-row__count { padding: 4px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; color: var(--muted); background: rgba(255,255,255,.06); white-space: nowrap; }
+    .role-row__lock { width: 36px; height: 36px; display: grid; place-items: center; font-size: .95rem; opacity: .7; }
+    .role-row__people { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--line); }
+    .role-row__people small { color: var(--muted); font-size: .8rem; }
+    .role-person { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .82rem; font-weight: 700; background: rgba(255,255,255,.06); border: 1px solid color-mix(in srgb, var(--rc) 40%, transparent); }
+    .role-person i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+    .perms { display: flex; flex-wrap: wrap; gap: 8px; }
+    .perms label { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: .84rem; font-weight: 600; cursor: pointer; user-select: none; color: var(--muted); background: rgba(255,255,255,.04); border: 1.5px solid rgba(255,255,255,.1); transition: all .2s; }
+    .perms input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    .perms label::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.35); transition: all .2s; }
+    .perms label:has(input:checked) { color: var(--text); background: color-mix(in srgb, var(--rc) 16%, transparent); border-color: color-mix(in srgb, var(--rc) 60%, transparent); }
+    .perms label:has(input:checked)::before { border-color: var(--rc); background: var(--rc); box-shadow: 0 0 8px var(--rc); }
+    .perms label:has(input:focus-visible) { outline: 2px solid var(--rc); outline-offset: 2px; }
+    .perms label:has(input:disabled) { cursor: not-allowed; opacity: .75; }
+    @media (max-width: 520px) {
+      .role-row__top { flex-wrap: wrap; }
+      .role-row input[data-rname] { flex-basis: calc(100% - 120px); }
+      .role-row__meta { width: 100%; justify-content: space-between; }
+    }
+    .role-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 800; color: var(--rc); background: color-mix(in srgb, var(--rc) 14%, transparent); border: 1px solid color-mix(in srgb, var(--rc) 45%, transparent); }
+
+    /* Cuentas del panel */
+    .tab[hidden] { display: none; }
+    .acc { grid-template-columns: 1fr; }
+    .acc__top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .acc__user { font-weight: 800; margin-right: auto; display: flex; align-items: center; gap: 8px; }
+    .acc__user code { font-size: .85rem; padding: 2px 8px; border-radius: 8px; background: rgba(255,255,255,.07); color: var(--lime); }
+    .acc select { padding: 8px 10px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,.15); background: rgba(0,0,0,.35); color: var(--text); font: inherit; font-size: .9rem; color-scheme: dark; }
+    .acc.is-off { opacity: .55; }
+    .acc__info { font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .role-access { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+    .role-access b { display: block; margin-bottom: 2px; }
+    .role-access span { color: var(--muted); }
+    #meBtn .role-chip { margin-left: 2px; }
+
+    .pin { max-width: 380px; margin: 12vh auto 0; text-align: center; }
+    .pin .gate__card { animation: none; }
+
+    @media (min-width: 760px) {
+      .kpis { grid-template-columns: repeat(4, 1fr); }
+      .grid2 { grid-template-columns: 1fr 1fr; }
+      .tools { flex-direction: row; align-items: center; justify-content: space-between; }
+      .tools input { max-width: 320px; }
+      .reports { grid-template-columns: 1fr 1fr; }
+      .row { grid-template-columns: 64px 1fr auto; }
+      .row__btns { grid-column: auto; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Acceso de admins -->
+  <section class="container pin" id="pinView">
+    <div class="gate__card">
+      <div class="ring ring--sm"><img src="assets/logo.jpg" data-logo alt="Logo ParchéMonos" width="120" height="120" /></div>
+      <p class="eyebrow" style="justify-content:center">Solo admins</p>
+      <h1 class="gate__title brush-title">Panel de admins</h1>
+      <form id="pinForm" novalidate style="text-align:left">
+        <label class="field">
+          <span class="field__label">Usuario</span>
+          <input type="text" id="loginUser" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+        </label>
+        <label class="field">
+          <span class="field__label">Contraseña</span>
+          <input type="password" id="pinInput" autocomplete="current-password" required />
+        </label>
+        <p class="field__error" id="pinError" role="alert"></p>
+        <button class="btn btn--grad btn--block" type="submit">Entrar 🛡️</button>
+      </form>
+      <p class="gate__fine">¿Eres del equipo y no tienes cuenta? Pídele a un Administrador que te cree un usuario.</p>
+    </div>
+  </section>
+
+  <!-- Registro: primera vez → crear la cuenta del Fundador -->
+  <section class="container pin" id="setupView" hidden>
+    <div class="gate__card">
+      <div class="ring ring--sm"><img src="assets/logo.jpg" data-logo alt="Logo ParchéMonos" width="120" height="120" /></div>
+      <p class="eyebrow" style="justify-content:center">Primera vez</p>
+      <h1 class="gate__title brush-title">Crea tu cuenta</h1>
+      <p class="gate__text">Todavía no hay cuentas en el panel. Crea la cuenta del <b>👑 Fundador</b>: tendrá acceso a todo y podrá crear las cuentas del resto del equipo.</p>
+      <form id="setupForm" novalidate style="text-align:left">
+        <label class="field"><span class="field__label">Usuario *</span><input type="text" id="setupUser" maxlength="24" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Ej: richy" /></label>
+        <label class="field"><span class="field__label">Tu nombre o apodo *</span><input type="text" id="setupName" maxlength="40" placeholder="Ej: Richy 👑" /></label>
+        <label class="field"><span class="field__label">Contraseña * (mínimo 8)</span><input type="password" id="setupPass" autocomplete="new-password" /></label>
+        <label class="field"><span class="field__label">Repite la contraseña *</span><input type="password" id="setupPass2" autocomplete="new-password" /></label>
+        <p class="field__error" id="setupErr" role="alert"></p>
+        <button class="btn btn--grad btn--block" type="submit">👑 Crear cuenta de Fundador</button>
+      </form>
+      <p class="gate__fine">Después ve a <b>🚀 Publicar</b> para que tu cuenta funcione en cualquier computador.</p>
+      <p class="gate__fine"><a href="index.html" style="text-decoration:underline">← Volver al sitio</a></p>
+    </div>
+  </section>
+
+  <!-- Panel -->
+  <main class="container admin" id="adminView" hidden>
+    <header class="admin__top">
+      <img src="assets/logo.jpg" data-logo alt="" />
+      <h1>Panel <i>· admins</i></h1>
+      <span class="spacer"></span>
+      <div class="btns">
+        <button class="btn btn--ghost btn--sm" id="meBtn" title="Mi cuenta">👤 <span id="meUser"></span> <span id="meRole"></span></button>
+        <a class="btn btn--ghost btn--sm" href="index.html" target="_blank" rel="noopener">👁️ Ver la página</a>
+        <button class="btn btn--ghost btn--sm" id="logoutBtn">Salir</button>
+      </div>
+    </header>
+    <p class="note" id="defaultPassNote" hidden>🔒 Estás usando la contraseña inicial. <b>Cámbiala ya</b> en <button class="btn btn--grad btn--sm" id="defaultPassBtn" style="margin-left:6px">👤 Mi cuenta</button></p>
+
+    <nav class="tabs" id="tabs" aria-label="Secciones del panel">
+      <button class="tab is-active" data-tab="resumen">📊 Resumen</button>
+      <button class="tab" data-tab="solicitudes">🙋 Solicitudes <b id="tabReqCount" hidden></b></button>
+      <button class="tab" data-tab="miembros">👥 Miembros y roles</button>
+      <button class="tab" data-tab="reportes">🚩 Reportes <b id="tabRepCount" hidden></b></button>
+      <button class="tab" data-tab="textos">✏️ Textos</button>
+      <button class="tab" data-tab="imagenes">🖼️ Imágenes</button>
+      <button class="tab" data-tab="parches">🗓️ Parches</button>
+      <button class="tab" data-tab="test">❓ Test</button>
+      <button class="tab" data-tab="chat">💬 Chat</button>
+      <button class="tab" data-tab="ajustes">⚙️ Seguridad y ajustes</button>
+      <button class="tab" data-tab="recuerdos">📸 Recuerdos</button>
+      <button class="tab" data-tab="publicar">🚀 Publicar</button>
+      <button class="tab" data-tab="cuentas">🔑 Cuentas del panel</button>
+    </nav>
+
+    <!-- RESUMEN -->
+    <section class="pane" data-pane="resumen">
+      <div class="pane__head"><div><h2>Resumen</h2><p>Todo lo del parche en un solo lugar. Toca una cifra para ir a esa sección.</p></div></div>
+      <div class="kpis">
+        <button class="kpi kpi--pink" data-go="solicitudes"><b id="kReqPend">0</b><span>Solicitudes por revisar</span></button>
+        <button class="kpi" data-go="miembros"><b id="kMembers">0</b><span>Miembros</span></button>
+        <button class="kpi kpi--pink" data-go="reportes"><b id="kRepPend">0</b><span>Reportes pendientes</span></button>
+        <button class="kpi" data-go="parches"><b id="kPlans">0</b><span>Parches oficiales</span></button>
+        <button class="kpi" data-go="textos"><b id="kTexts">0</b><span>Textos editados</span></button>
+        <button class="kpi" data-go="imagenes"><b id="kImgs">0</b><span>Imágenes cambiadas</span></button>
+      </div>
+      <div class="note" id="pubNote">⚠️ Lo que edites aquí se ve en <b>tu navegador</b> como vista previa. Para que lo vea <b>todo el mundo</b>, ve a <b>🚀 Publicar</b>, descarga <code>site-data.js</code> y súbelo junto con la página.</div>
+      <div class="grid2">
+        <div class="box"><h3>✏️ Cambiar textos</h3><p style="margin:0 0 12px;color:var(--muted)">Títulos, reglas, portada, cifras, footer…</p><button class="btn btn--ghost btn--sm" data-go="textos">Ir a Textos →</button></div>
+        <div class="box"><h3>🖼️ Cambiar imágenes</h3><p style="margin:0 0 12px;color:var(--muted)">Logo, portada, íconos de tarjetas y más.</p><button class="btn btn--ghost btn--sm" data-go="imagenes">Ir a Imágenes →</button></div>
+        <div class="box"><h3>🗓️ Parches oficiales</h3><p style="margin:0 0 12px;color:var(--muted)">Crea, edita o borra planes con foto, fecha y dirección.</p><button class="btn btn--ghost btn--sm" data-go="parches">Ir a Parches →</button></div>
+        <div class="box"><h3>⚙️ Seguridad</h3><p style="margin:0 0 12px;color:var(--muted)">Edades, IPs bloqueadas, países, VPN y clave del panel.</p><button class="btn btn--ghost btn--sm" data-go="ajustes">Ir a Ajustes →</button></div>
+      </div>
+    </section>
+
+    <!-- SOLICITUDES -->
+    <section class="pane" data-pane="solicitudes" hidden>
+      <div class="pane__head">
+        <div><h2>Solicitudes de ingreso</h2><p>Personas que quieren entrar al chat del parche. Acéptalas normal, con período de prueba, o recházalas.</p></div>
+      </div>
+      <p class="note">Modo demo: solo ves las solicitudes enviadas desde este navegador. Para recibir las de todas las personas hay que conectar un servidor.</p>
+      <div class="tools">
+        <div class="filters" id="reqFilters">
+          <button class="chip is-active" data-f="pendiente">⏳ Por revisar</button>
+          <button class="chip" data-f="aceptado">✅ Aceptadas</button>
+          <button class="chip" data-f="rechazado">🙅 Rechazadas</button>
+          <button class="chip" data-f="all">Todas</button>
+        </div>
+      </div>
+      <div class="reports" id="reqList"></div>
+    </section>
+
+    <!-- MIEMBROS Y ROLES -->
+    <section class="pane" data-pane="miembros" hidden>
+      <div class="pane__head">
+        <div><h2>Miembros y roles</h2><p>Dale a cada persona su rol. El rol decide qué puede hacer en el chat y se ve al lado de su apodo.</p></div>
+        <span class="saved" id="memSaved">✓ Guardado</span>
+      </div>
+
+      <div class="box">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="margin:0">👥 Miembros</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="search" id="memberSearch" class="mem-filter" placeholder="Buscar apodo…" aria-label="Buscar miembro" />
+            <select id="memberRoleFilter" class="mem-filter" aria-label="Filtrar por rol"></select>
+            <button class="btn btn--grad btn--sm" id="memberAdd">➕ Agregar</button>
+          </div>
+        </div>
+        <div class="rows" id="memberRows"></div>
+      </div>
+
+      <div class="box">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="margin:0">🎖️ Roles y permisos</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn--ghost btn--sm" id="rolesReset">↺ Restaurar</button>
+            <button class="btn btn--grad btn--sm" id="roleAdd">➕ Nuevo rol</button>
+          </div>
+        </div>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:.88rem">📌 Fijar mensajes · 📊 Crear encuestas · 🖼️ Fotos, videos y GIFs · 🗓️ Proponer parches. Todos los roles pueden escribir, mandar stickers y notas de voz.</p>
+        <div class="rows" id="roleRows"></div>
+      </div>
+    </section>
+
+    <!-- REPORTES -->
+    <section class="pane" data-pane="reportes" hidden>
+      <div class="pane__head">
+        <div><h2>Reportes</h2><p>Reportes privados y públicos que hace la gente.</p></div>
+        <div class="btns"><button class="btn btn--ghost btn--sm" id="exportReports">⬇ Exportar reportes</button></div>
+      </div>
+      <p class="note">Modo demo: solo ves los reportes hechos desde este navegador. Para recibir los de todas las personas hay que conectar un servidor (Ajustes → Servidor de reportes).</p>
+      <div class="kpis">
+        <div class="kpi kpi--pink"><b id="kPend">0</b><span>Pendientes</span></div>
+        <div class="kpi"><b id="kRev">0</b><span>En revisión</span></div>
+        <div class="kpi"><b id="kDone" style="color:#3dffd0">0</b><span>Resueltos</span></div>
+        <div class="kpi"><b id="kBan" style="color:#ff6b6b">0</b><span>Expulsados</span></div>
+      </div>
+      <div class="tools">
+        <div class="filters" id="repFilters">
+          <button class="chip is-active" data-f="all">Todos</button>
+          <button class="chip" data-f="pendiente">Pendientes</button>
+          <button class="chip" data-f="revision">En revisión</button>
+          <button class="chip" data-f="resuelto">Resueltos</button>
+          <button class="chip" data-f="expulsado">Expulsados</button>
+          <button class="chip" data-f="publico">Públicos</button>
+          <button class="chip" data-f="privado">Privados</button>
+        </div>
+        <input type="search" id="repSearch" placeholder="Buscar por apodo o motivo…" aria-label="Buscar reportes" />
+      </div>
+      <div class="reports" id="reports"></div>
+    </section>
+
+    <!-- TEXTOS -->
+    <section class="pane" data-pane="textos" hidden>
+      <div class="pane__head">
+        <div><h2>Textos de la página</h2><p>Se guarda solo mientras escribes. Usa <b>**dos asteriscos**</b> para <b>negrita</b>. El botón ↺ vuelve al texto original.</p></div>
+        <div class="btns"><span class="saved" id="textSaved">✓ Guardado</span><input type="search" id="textSearch" placeholder="Buscar texto…" class="mem-filter" aria-label="Buscar texto" /></div>
+      </div>
+      <div id="textGroups"></div>
+    </section>
+
+    <!-- IMÁGENES -->
+    <section class="pane" data-pane="imagenes" hidden>
+      <div class="pane__head">
+        <div><h2>Imágenes</h2><p>Cambia cualquier imagen o ícono. Las de cada parche se cambian en la pestaña Parches.</p></div>
+        <div class="btns"><a class="btn btn--grad btn--sm" href="index.html?editar">🖼️ Editar sobre la página</a></div>
+      </div>
+      <div class="slots" id="slots"></div>
+      <input type="file" id="slotInput" accept="image/*" hidden />
+    </section>
+
+    <!-- PARCHES -->
+    <section class="pane" data-pane="parches" hidden>
+      <div class="pane__head">
+        <div><h2>Parches oficiales</h2><p>Los planes que salen en "Próximos parches" para todos. (Los que propone la gente se guardan en el navegador de cada quien.)</p></div>
+        <div class="btns">
+          <button class="btn btn--ghost btn--sm" id="plansReset">↺ Restaurar ejemplos</button>
+          <button class="btn btn--grad btn--sm" id="planNew">➕ Nuevo parche</button>
+        </div>
+      </div>
+      <div class="rows" id="planRows"></div>
+    </section>
+
+    <!-- TEST -->
+    <section class="pane" data-pane="test" hidden>
+      <div class="pane__head">
+        <div><h2>Test de entrada</h2><p>Las preguntas que hay que responder bien para entrar. Tipos: respuesta concreta, Sí/No o Verdadero/Falso.</p></div>
+        <div class="btns">
+          <span class="saved" id="quizSaved">✓ Guardado</span>
+          <button class="btn btn--ghost btn--sm" id="quizReset">↺ Restaurar</button>
+          <button class="btn btn--grad btn--sm" id="quizAdd">➕ Pregunta</button>
+        </div>
+      </div>
+      <div id="quizList"></div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="pane" data-pane="chat" hidden>
+      <div class="pane__head">
+        <div><h2>Chat</h2><p>Stickers del parche y palabras que bloquea el filtro anti-acoso.</p></div>
+        <span class="saved" id="chatSaved">✓ Guardado</span>
+      </div>
+      <div class="grid2">
+        <div class="box">
+          <h3>✨ Stickers</h3>
+          <div class="stk-rows" id="stkRows"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn btn--ghost btn--sm" id="stkAdd">➕ Sticker</button>
+            <button class="btn btn--ghost btn--sm" id="stkReset">↺ Restaurar</button>
+          </div>
+        </div>
+        <div class="box">
+          <h3>🛡️ Palabras bloqueadas</h3>
+          <label class="field">
+            <span class="field__label">Una palabra o frase por línea</span>
+            <textarea id="blockedWords" rows="14"></textarea>
+            <small class="hint">Si un mensaje, apodo, parche o encuesta tiene alguna de estas, no se publica.</small>
+          </label>
+          <button class="btn btn--ghost btn--sm" id="blockedReset">↺ Restaurar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="pane" data-pane="ajustes" hidden>
+      <div class="pane__head">
+        <div><h2>Seguridad y ajustes</h2><p>Se guarda solo al cambiar cada campo.</p></div>
+        <span class="saved" id="setSaved">✓ Guardado</span>
+      </div>
+      <div class="grid2">
+        <div class="box">
+          <h3>🔞 Edad permitida</h3>
+          <div class="field-row">
+            <label class="field"><span class="field__label">Edad mínima</span><input type="number" min="13" max="99" data-set="AGE_MIN" /></label>
+            <label class="field"><span class="field__label">Edad máxima</span><input type="number" min="13" max="120" data-set="AGE_MAX" /></label>
+          </div>
+          <small class="hint" style="color:var(--muted)">Recuerda actualizar también los textos que mencionan la edad (pestaña Textos → busca "18") y la pregunta del test.</small>
+        </div>
+        <div class="box">
+          <h3>🙋 Ingreso al chat</h3>
+          <label class="field"><span class="field__label">Días del período de prueba</span><input type="number" min="1" max="365" data-set="TRIAL_DAYS" /></label>
+          <small class="hint" style="color:var(--muted)">Es lo que se propone al tocar "🧪 Aceptar a prueba". Durante la prueba la persona solo puede enviar texto, stickers y notas de voz (rol "En prueba").</small>
+        </div>
+        <div class="box">
+          <h3>🌐 Conexión</h3>
+          <label class="switch" style="margin-bottom:14px"><input type="checkbox" data-set="BLOCK_DATACENTER" /> Bloquear VPN, proxies y servidores</label>
+          <label class="field"><span class="field__label">Países permitidos (códigos, separados por coma)</span><input type="text" data-set="ALLOWED_COUNTRIES" data-list placeholder="Vacío = todos. Ej: CO, MX" /></label>
+        </div>
+        <div class="box">
+          <h3>⛔ IPs bloqueadas</h3>
+          <label class="field"><span class="field__label">Una IP por línea</span><textarea rows="6" data-set="BLOCKED_IPS" data-list data-lines placeholder="190.25.10.4"></textarea>
+          <small class="hint">Bloquea esas IPs para todos los visitantes (después de publicar).</small></label>
+        </div>
+        <div class="box">
+          <h3>🔑 Servicios externos</h3>
+          <label class="field"><span class="field__label">Clave de GIPHY (buscador de GIFs)</span><input type="text" data-set="GIPHY_API_KEY" placeholder="developers.giphy.com" /></label>
+          <label class="field"><span class="field__label">Clave de Cloudflare Turnstile (captcha)</span><input type="text" data-set="TURNSTILE_SITE_KEY" placeholder="Vacío = botón &quot;mantén presionado&quot;" /></label>
+          <label class="field"><span class="field__label">Servidor de reportes (URL)</span><input type="text" data-set="REPORT_ENDPOINT" placeholder="https://… (opcional)" /></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUENTAS DEL PANEL -->
+    <section class="pane" data-pane="cuentas" hidden>
+      <div class="pane__head">
+        <div><h2>Cuentas del panel</h2><p>Dale a alguien del equipo su propio usuario y contraseña para entrar al panel. Solo puedes dar roles <b>menores que el tuyo</b>.</p></div>
+      </div>
+      <div class="grid2">
+        <div class="box">
+          <h3>➕ Nueva cuenta</h3>
+          <form id="accForm" novalidate>
+            <label class="field"><span class="field__label">Usuario (para entrar) *</span><input type="text" id="accUser" maxlength="24" autocapitalize="none" spellcheck="false" placeholder="Ej: vale" /></label>
+            <label class="field"><span class="field__label">Nombre o apodo *</span><input type="text" id="accName" maxlength="40" list="accMembers" placeholder="Ej: Vale 🌸" /><datalist id="accMembers"></datalist></label>
+            <label class="field"><span class="field__label">Rol en el panel *</span><select id="accRole"></select></label>
+            <div class="field-row">
+              <label class="field"><span class="field__label">Contraseña *</span><input type="text" id="accPass" minlength="8" autocomplete="off" /></label>
+              <div class="field"><span class="field__label">&nbsp;</span><button type="button" class="btn btn--ghost btn--block" id="accGen">🎲 Generar</button></div>
+            </div>
+            <small class="hint" style="color:var(--muted);display:block;margin:-4px 0 12px">Mínimo 8 caracteres. Cópiala y entrégasela a la persona en privado: después no se puede volver a ver.</small>
+            <p class="field__error" id="accErr" role="alert"></p>
+            <button class="btn btn--grad btn--block" type="submit">🔑 Crear cuenta</button>
+          </form>
+        </div>
+        <div class="box">
+          <h3>🎖️ Qué puede hacer cada rol</h3>
+          <div id="accRolesInfo" style="display:grid;gap:8px;font-size:.88rem"></div>
+        </div>
+      </div>
+      <div class="box">
+        <h3>🔑 Cuentas</h3>
+        <div class="rows" id="accRows"></div>
+      </div>
+      <p class="note">Las cuentas nuevas sirven en otros computadores después de <b>🚀 Publicar</b> (viajan con la contraseña cifrada).</p>
+    </section>
+
+    <!-- RECUERDOS -->
+    <section class="pane" data-pane="recuerdos" hidden>
+      <div class="pane__head"><div><h2>Recuerdos</h2><p>Fotos y videos subidos a la galería. Puedes borrar los que no cumplan las reglas.</p></div></div>
+      <p class="note">Modo demo: solo ves los recuerdos subidos desde este navegador.</p>
+      <div class="rows" id="memRows"></div>
+    </section>
+
+    <!-- PUBLICAR -->
+    <section class="pane" data-pane="publicar" hidden>
+      <div class="pane__head"><div><h2>Publicar para todos</h2><p>Así los cambios dejan de ser solo tuyos y los ve cualquier persona que entre a la página.</p></div></div>
+      <div class="box">
+        <h3>🚀 1 · Descarga el archivo con tus cambios</h3>
+        <p style="color:var(--muted);margin:0 0 14px">Incluye textos, imágenes, parches oficiales, test, stickers, palabras bloqueadas y ajustes.</p>
+        <button class="btn btn--grad" id="publishBtn">⬇ Descargar site-data.js</button>
+        <p style="color:var(--muted);margin:14px 0 0;font-size:.9rem">
+          <b>2 ·</b> Pon ese archivo en la carpeta de la página (reemplaza el <code>site-data.js</code> que ya está).<br />
+          <b>3 ·</b> Sube la carpeta a tu hosting como siempre. ¡Listo! 🎉
+        </p>
+      </div>
+      <div class="grid2">
+        <div class="box">
+          <h3>💾 Copia de seguridad</h3>
+          <p style="color:var(--muted);margin:0 0 12px;font-size:.9rem">Guarda todos tus cambios en un archivo o recupéralos en otro computador.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn--ghost btn--sm" id="backupBtn">⬇ Descargar copia</button>
+            <button class="btn btn--ghost btn--sm" id="restoreBtn">⬆ Cargar copia</button>
+            <input type="file" id="restoreInput" accept=".json,application/json" hidden />
+          </div>
+        </div>
+        <div class="box">
+          <h3>🧹 Descartar cambios</h3>
+          <p style="color:var(--muted);margin:0 0 12px;font-size:.9rem">Borra la vista previa de este navegador y vuelve a lo que está publicado.</p>
+          <button class="btn btn--danger btn--sm" id="discardBtn">Descartar todos mis cambios</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Editor de parche -->
+  <div class="modal" id="planModal" role="dialog" aria-modal="true" aria-labelledby="pmTitle" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card modal__card--wide">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <h3 class="brush-title" id="pmTitle">Parche</h3>
+      <form id="pmForm" novalidate>
+        <div class="img-pick">
+          <input type="file" id="pmImg" accept="image/*" hidden />
+          <button type="button" class="img-pick__empty" id="pmImgBtn"><span>🖼️</span><b>Agregar imagen</b><small>Se reduce sola</small></button>
+          <div class="img-pick__preview" id="pmImgPrev" hidden>
+            <img alt="Imagen del parche" id="pmImgTag" />
+            <button type="button" class="img-pick__remove" id="pmImgDel" aria-label="Quitar imagen">✕</button>
+          </div>
+        </div>
+        <label class="field"><span class="field__label">Título *</span><input type="text" id="pmName" maxlength="60" required /></label>
+        <div class="field-row">
+          <label class="field"><span class="field__label">Categoría *</span><select id="pmCat"></select></label>
+          <label class="field"><span class="field__label">Cupos (opcional)</span><input type="number" id="pmCap" min="2" max="500" /></label>
+        </div>
+        <div class="field-row">
+          <label class="field"><span class="field__label">Fecha *</span><input type="date" id="pmDate" required /></label>
+          <label class="field"><span class="field__label">Hora *</span><input type="time" id="pmTime" required /></label>
+        </div>
+        <label class="field"><span class="field__label">Dirección *</span><input type="text" id="pmAddr" maxlength="120" required /></label>
+        <label class="field"><span class="field__label">Punto de encuentro</span><input type="text" id="pmMeet" maxlength="80" /></label>
+        <label class="field"><span class="field__label">Descripción *</span><textarea id="pmDesc" rows="3" maxlength="400" required></textarea></label>
+        <div class="field-row">
+          <label class="field"><span class="field__label">Organiza</span><input type="text" id="pmAuthor" maxlength="30" placeholder="Mono Mod 🛡️" /></label>
+          <label class="field"><span class="field__label">Ya van (número inicial)</span><input type="number" id="pmGoing" min="0" /></label>
+        </div>
+        <label class="field"><span class="field__label">Votos 🔥 iniciales</span><input type="number" id="pmVotes" min="0" /></label>
+        <div class="poll-builder">
+          <label class="check"><input type="checkbox" id="pmPollOn" /><span>🗳️ Votación</span></label>
+          <div id="pmPollFields" hidden>
+            <label class="field" style="margin-top:12px"><span class="field__label">Pregunta</span><input type="text" id="pmPollQ" maxlength="80" /></label>
+            <div class="poll-builder__opts" id="pmPollOpts"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="pmPollAdd">➕ Opción</button>
+          </div>
+        </div>
+        <p class="field__error" id="pmErr" role="alert"></p>
+        <button type="submit" class="btn btn--grad btn--block">💾 Guardar parche</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mi cuenta -->
+  <div class="modal" id="meModal" role="dialog" aria-modal="true" aria-labelledby="meTitle" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <h3 class="brush-title" id="meTitle">Mi cuenta</h3>
+      <p class="modal__text" id="meInfo"></p>
+      <form id="pinChange" novalidate>
+        <label class="field"><span class="field__label">Contraseña actual</span><input type="password" id="pinOld" autocomplete="current-password" /></label>
+        <label class="field"><span class="field__label">Nueva contraseña</span><input type="password" id="pinNew" minlength="8" autocomplete="new-password" /></label>
+        <label class="field"><span class="field__label">Repite la nueva contraseña</span><input type="password" id="pinNew2" autocomplete="new-password" /></label>
+        <p class="field__error" id="pinChangeErr"></p>
+        <button class="btn btn--grad btn--block" type="submit">🔒 Cambiar contraseña</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox" hidden><img alt="Imagen" id="lightboxImg" /></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="site-data.js"></script>
+  <script src="content.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
