@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ParchéMonos · Planes, Amigos, Aventuras</title>
+  <meta name="description" content="ParchéMonos: el parche para salir, conocer gente nueva y hacer amigos de verdad en Colombia. De 18 a 36 años, cero acoso." />
+  <meta name="theme-color" content="#07040d" />
+  <link rel="icon" href="assets/logo.jpg" id="favicon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Permanent+Marker&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="is-locked">
+
+  <!-- SVG defs reutilizables -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="gradBrush" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stop-color="#ff3df0" />
+        <stop offset=".55" stop-color="#b14dff" />
+        <stop offset="1" stop-color="#f5ff3d" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- 1. Ventana +18 -->
+  <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div class="gate__glow" aria-hidden="true"></div>
+    <div class="gate__card">
+      <div class="ring ring--sm" data-slot="logo">
+        <img src="assets/logo.jpg" data-logo alt="Logo ParchéMonos" width="140" height="140" />
+      </div>
+      <ol class="steps" id="gateSteps" aria-label="Pasos para entrar">
+        <li class="is-active"><span>1</span>Seguridad</li>
+        <li><span>2</span>Edad</li>
+        <li><span>3</span>Reglas</li>
+        <li><span>4</span>Test</li>
+      </ol>
+
+      <!-- Paso 1: seguridad (IP + anti-bot) -->
+      <div class="gate__step" id="gateSec">
+        <p class="eyebrow">Paso 1 de 4 · Seguridad</p>
+        <h1 class="gate__title brush-title" id="gateTitle" data-text="gate.sec.t">Verificación de seguridad</h1>
+        <p class="gate__text" data-text="gate.sec.d">Antes de entrar revisamos tu conexión y que seas una persona real, no un bot. 🤖🚫</p>
+        <ul class="sec-checks">
+          <li id="chkIp" data-state="loading">
+            <span class="sec-checks__icon" aria-hidden="true"></span>
+            <div><b>Verificación de IP</b><small id="ipInfo">Revisando tu conexión…</small></div>
+          </li>
+          <li id="chkBot" data-state="idle">
+            <span class="sec-checks__icon" aria-hidden="true"></span>
+            <div><b>Verificación anti-bot</b><small id="botInfo">Mantén presionado el botón de abajo</small></div>
+          </li>
+        </ul>
+        <!-- trampa para bots: las personas no ven este campo -->
+        <input type="text" id="hpField" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+        <div class="turnstile" id="turnstileBox" hidden></div>
+        <button type="button" class="hold" id="holdBtn">
+          <span class="hold__fill" aria-hidden="true"></span>
+          <span class="hold__label" id="holdLabel">Mantén presionado · No soy un robot 🤖</span>
+        </button>
+        <p class="field__error" id="secError" role="alert"></p>
+      </div>
+
+      <!-- Paso 2: verificación de edad -->
+      <div class="gate__step" id="gateAsk" hidden>
+        <p class="eyebrow">Paso 2 de 4 · Edad</p>
+        <h2 class="gate__title brush-title" data-text="gate.age.t">¿Tienes entre 18 y 36?</h2>
+        <p class="gate__text" data-text="gate.age.d">ParchéMonos es para personas de 18 a 36 años. Pon tu fecha de nacimiento y calculamos tu edad.</p>
+        <form class="gate__form" id="gateForm" novalidate>
+          <label class="field">
+            <span class="field__label">Fecha de nacimiento</span>
+            <input type="date" id="birthdate" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Tu edad</span>
+            <input type="text" id="ageInput" placeholder="Se calcula sola ✨" readonly tabindex="-1" aria-live="polite" />
+          </label>
+          <p class="field__error" id="gateError" role="alert"></p>
+          <button type="submit" class="btn btn--grad btn--block">Verificar mi edad</button>
+        </form>      </div>
+
+      <!-- Paso 2: leer las reglas -->
+      <div class="gate__step" id="gateRules" hidden>
+        <p class="eyebrow">Paso 3 de 4 · Reglas</p>
+        <h2 class="gate__title brush-title">Lee las reglas</h2>
+        <p class="gate__text">Léelas completas, parcero: ahorita te hacemos 10 preguntas sobre ellas.</p>
+        <div class="gate-rules" id="gateRulesBox" tabindex="0" aria-label="Reglas del parche">
+          <p class="gate-rules__intro"><strong data-text="rules.eyebrow">🔥💜 ¡Bienvenidos a ParchéMonos! 💜🔥</strong><br /><span data-text="rules.lead">🥳 Este es un espacio para conocer personas nuevas, hacer amistades, organizar salidas y disfrutar buenos parches. ¡La idea es conocer gente chévere y crear buenos momentos! 🫶✨</span></p>
+          <div class="gate-rules__big gate-rules__big--age">
+            <b data-text="rules.age.n">18–36</b>
+            <p><strong data-text="rules.age.t">Solo de 18 a 36 años</strong>. <span data-text="rules.age.d">El grupo, los planes y el chat son exclusivos para personas entre 18 y 36 años. Menores de 18 y mayores de 36 no pueden entrar. Si alguien no cumple la edad, sale del grupo.</span></p>
+          </div>
+          <p class="gate-rules__title">📌 Reglas del grupo 📌</p>
+          <ol class="gate-rules__list">
+            <li><span>01</span><p><strong data-text="rule1.t">✅ Preséntate</strong>: <span data-text="rule1.d">Dinos tu nombre, edad y de dónde eres.</span></p></li>
+            <li><span>02</span><p><strong data-text="rule2.t">🤝 Respeto ante todo</strong>: <span data-text="rule2.d">Nada de insultos, acoso, indirectas ni faltas de respeto.</span></p></li>
+            <li><span>03</span><p><strong data-text="rule3.t">🚫 Nada de contenido sexual</strong>: <span data-text="rule3.d">No se permite hablar de sexo, enviar stickers pornográficos, imágenes ni contenido sexual.</span></p></li>
+            <li><span>04</span><p><strong data-text="rule4.t">🔒 Respeta la privacidad</strong>: <span data-text="rule4.d">Prohibido escribir al DM de cualquier integrante sin su autorización.</span></p></li>
+            <li><span>05</span><p><strong data-text="rule5.t">❌ Nada de spam</strong>: <span data-text="rule5.d">No publicidad, cadenas ni enlaces sin permiso de los administradores.</span></p></li>
+            <li><span>06</span><p><strong data-text="rule6.t">💬 Buena convivencia</strong>: <span data-text="rule6.d">Evitemos peleas y problemas innecesarios.</span></p></li>
+            <li><span>07</span><p><strong data-text="rule7.t">🎉 ¡Propón tus parches!</strong>: <span data-text="rule7.d">Puedes organizar salidas y compartir planes con el grupo.</span></p></li>
+            <li><span>08</span><p><strong data-text="rule8.t">👑 Respeta a los administradores</strong>: <span data-text="rule8.d">Sigue las indicaciones para mantener el orden.</span></p></li>
+          </ol>
+          <div class="gate-rules__big gate-rules__big--zero">
+            <b>⚠️</b>
+            <p><span data-text="rules.zero.d">⚠️ <strong>Importante:</strong> quien incumpla estas normas, especialmente las de contenido sexual o mensajes privados sin autorización, será expulsado del grupo.</span> <em data-text="rules.zero.k">⛔ Expulsión sin excepción.</em></p>
+          </div>
+          <p class="gate-rules__end"><span data-text="rules.outro">💜 ¡La idea es pasarla bueno, conocer gente y mantener un ambiente sano y agradable para todos! 🫶</span><br />✅ Llegaste al final. ¡Gracias por leer!</p>
+        </div>
+        <p class="gate__hint" id="rulesHint">↓ Baja hasta el final para continuar</p>
+        <button type="button" class="btn btn--grad btn--block" id="rulesDone" disabled>Ya las leí, vamos al test</button>
+      </div>
+
+      <!-- Paso 3: test de 10 preguntas -->
+      <div class="gate__step" id="gateQuiz" hidden>
+        <p class="eyebrow">Paso 4 de 4 · <span id="qCount">Pregunta 1 de 10</span></p>
+        <div class="quiz__bar" aria-hidden="true"><span id="qBar"></span></div>
+        <span class="quiz__type" id="qType"></span>
+        <h2 class="quiz__q" id="qText"></h2>
+        <div class="quiz__opts" id="qOpts" role="radiogroup" aria-labelledby="qText"></div>
+        <div class="quiz__nav">
+          <button type="button" class="btn btn--ghost" id="qPrev">Atrás</button>
+          <button type="button" class="btn btn--grad" id="qNext" disabled>Siguiente</button>
+        </div>
+      </div>
+
+      <!-- Resultado del test -->
+      <div class="gate__step" id="gateResult" hidden>
+        <div class="gate__emoji" id="resEmoji" aria-hidden="true">🎉</div>
+        <h2 class="gate__title brush-title" id="resTitle"></h2>
+        <p class="gate__text" id="resText"></p>
+        <ul class="quiz__review" id="resList"></ul>
+        <div class="quiz__nav quiz__nav--stack" id="resActions"></div>
+      </div>
+
+      <!-- Bloqueo por edad (menores de 18 o mayores de 36) -->
+      <div class="gate__step gate__step--no" id="gateNo" hidden>
+        <div class="gate__emoji" aria-hidden="true">🔒</div>
+        <h2 class="gate__title brush-title" id="blockTitle">Todavía no, parcero</h2>
+        <p class="gate__text" id="blockText">Este parche es para personas de 18 a 36 años. Cuando cumplas 18, aquí te esperamos con los brazos abiertos. Mientras tanto, cuídate mucho y sal con tu gente de confianza. 🫶</p>
+        <p class="gate__blocked" id="blockTag">🚫 Acceso bloqueado en este navegador</p>
+        <button type="button" class="btn btn--ghost btn--block" id="blockRetry" hidden>🔄 Intentar de nuevo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Menú fijo -->
+  <header class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#inicio" class="nav__brand" aria-label="ParchéMonos, ir al inicio" data-slot="logo">
+        <img src="assets/logo.jpg" data-logo alt="" width="36" height="36" />
+        <span><b data-text="brand.1">Parché</b><i data-text="brand.2">Monos</i></span>
+      </a>
+      <nav class="nav__links" id="navLinks" aria-label="Principal">
+        <a href="#parche">El parche</a>
+        <a href="#planes">Planes</a>
+        <a href="#recuerdos">Recuerdos</a>
+        <a href="#reglas">Reglas</a>
+        <a href="#chat">Chat</a>
+        <a href="#chat" class="btn btn--grad btn--sm nav__cta-mobile" data-join>Únete</a>
+      </nav>
+      <a href="#chat" class="btn btn--grad btn--sm nav__cta" data-join>Únete</a>
+      <button class="nav__burger" id="burger" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <!-- 3. Hero -->
+    <section class="hero">
+      <div class="hero__bg" aria-hidden="true">
+        <span class="blob blob--pink"></span>
+        <span class="blob blob--violet"></span>
+        <span class="blob blob--lime"></span>
+        <div class="hero__grid"></div>
+      </div>
+      <div class="container hero__inner">
+        <div class="hero__copy">
+          <p class="eyebrow reveal" data-text="hero.eyebrow">Grupo de salidas · Colombia</p>
+          <h1 class="hero__title reveal">
+            <span class="t-white" data-text="brand.1">Parché</span><span class="t-lime" data-text="brand.2">Monos</span>
+            <svg class="brush-line" viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M6 28 C 120 10, 260 6, 380 14 S 560 22, 594 8" />
+            </svg>
+          </h1>
+          <p class="hero__sub reveal" data-text="hero.sub" data-bullets>Planes <i>•</i> Amigos <i>•</i> Aventuras</p>
+          <p class="hero__text reveal" data-text="hero.text">El parche para salir, conocer gente nueva y hacer amigos de verdad. <strong>Llega solo, sal con parche.</strong></p>
+          <div class="hero__ctas reveal">
+            <a href="#chat" class="btn btn--grad" data-join data-text="hero.cta1">Unirme al parche</a>
+            <a href="#planes" class="btn btn--ghost" data-text="hero.cta2">Ver próximos planes</a>
+          </div>
+          <ul class="badges badges--link reveal" aria-label="Lo básico">
+            <li><button type="button" data-badge="age" data-text="hero.badge1">🔞 De 18 a 36 años</button></li>
+            <li><button type="button" data-badge="zero" data-text="hero.badge2">🚫 Cero acoso</button></li>
+            <li><button type="button" data-badge="audio" data-text="hero.badge3">🎙️ Chat con audios</button></li>
+          </ul>
+        </div>
+        <div class="hero__art reveal">
+          <div class="ring ring--lg float" data-slot="hero">
+            <img src="assets/logo.jpg" alt="Logo de ParchéMonos: parceros mirando la ciudad de noche desde un mirador" width="520" height="520" />
+          </div>
+          <span class="sticker sticker--a" data-text="hero.sticker1">¿Pa' dónde vamos? 🗺️</span>
+          <span class="sticker sticker--b" data-text="hero.sticker2">{parceros} parceros 💜</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Marquee -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track" data-marquee>
+        <span>Planes</span><b>✦</b><span>Amigos</span><b>✦</b><span>Aventuras</span><b>✦</b><span>De 18 a 36</span><b>✦</b><span>Cero acoso</span><b>✦</b><span>Caminatas</span><b>✦</b><span>Rumba</span><b>✦</b>
+        <span>Planes</span><b>✦</b><span>Amigos</span><b>✦</b><span>Aventuras</span><b>✦</b><span>De 18 a 36</span><b>✦</b><span>Cero acoso</span><b>✦</b><span>Caminatas</span><b>✦</b><span>Rumba</span><b>✦</b>
+      </div>
+    </div>
+
+    <!-- 5. ¿Qué es el parche? -->
+    <section class="section" id="parche">
+      <div class="container">
+        <header class="section__head reveal">
+          <p class="eyebrow" data-text="parche.eyebrow">El parche</p>
+          <h2 class="brush-title" data-text="parche.title">¿Qué es el parche?</h2>
+          <p class="section__lead" data-text="parche.lead">Un grupo de gente bacana que se reúne a salir. No importa si llegas solo: aquí nadie se queda por fuera. Proponemos planes, nos apuntamos y nos vemos allá.</p>
+        </header>
+        <div class="cards">
+          <a href="#planes" class="card card--link reveal" data-cats="Mirador" data-label="Miradores 🌄">
+            <span class="card__icon" data-slot="card-miradores">🌄</span>
+            <h3 data-text="card1.t">Miradores</h3>
+            <p data-text="card1.d">Atardeceres con la ciudad a los pies, tinto o cerveza en mano y buena charla hasta que prendan las luces.</p>
+            <span class="card__more">Ver parches <i>→</i></span>
+          </a>
+          <a href="#planes" class="card card--link reveal" data-cats="Caminata,Paseo" data-label="Caminatas 🥾">
+            <span class="card__icon" data-slot="card-caminatas">🥾</span>
+            <h3 data-text="card2.t">Caminatas</h3>
+            <p data-text="card2.d">Senderos, cascadas y montaña. Ritmo para todos, guía que se sabe el camino y nadie se queda atrás.</p>
+            <span class="card__more">Ver parches <i>→</i></span>
+          </a>
+          <a href="#planes" class="card card--link reveal" data-cats="Rumba,Karaoke" data-label="Rumba 🪩">
+            <span class="card__icon" data-slot="card-rumba">🪩</span>
+            <h3 data-text="card3.t">Rumba</h3>
+            <p data-text="card3.d">Karaoke, salsa, reguetón o lo que suene. Rumba sana, en grupo, y todos volvemos a casa bien.</p>
+            <span class="card__more">Ver parches <i>→</i></span>
+          </a>
+          <a href="#planes" class="card card--link reveal" data-cats="Comida,Chill,Cultura,Deporte,Otro" data-label="Comida y más 🍔">
+            <span class="card__icon" data-slot="card-comida">🍔</span>
+            <h3 data-text="card4.t">Comida y más</h3>
+            <p data-text="card4.d">Food tours callejeros, paseo de olla, juegos de mesa, cine… si suena chimba, lo armamos.</p>
+            <span class="card__more">Ver parches <i>→</i></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Cifras -->
+    <section class="stats">
+      <!-- Las cifras se calculan solas (script.js → updateStats) -->
+      <div class="container">
+        <div class="stats__grid">
+          <div class="stat reveal"><strong><span data-count="0" data-stat="parceros">0</span></strong><span data-text="stat1.l">Parceros</span></div>
+          <div class="stat reveal"><strong><span data-count="0" data-stat="planes">0</span></strong><span data-text="stat2.l">Planes hechos</span></div>
+          <div class="stat reveal"><strong><span data-count="0" data-suffix="%" data-stat="respeto">0</span></strong><span data-text="stat3.l">Respeto</span></div>
+          <div class="stat reveal"><strong><span data-count="0" data-stat="acoso">0</span></strong><span data-text="stat4.l">Tolerancia al acoso</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Próximos parches -->
+    <section class="section" id="planes">
+      <div class="container">
+        <header class="section__head section__head--row reveal">
+          <div>
+            <p class="eyebrow" data-text="planes.eyebrow">Agenda</p>
+            <h2 class="brush-title" data-text="planes.title">Próximos parches</h2>
+          </div>
+          <div class="plans-tools">
+            <div class="filters" role="tablist" aria-label="Filtrar planes" id="planFilters">
+              <button class="chip is-active" data-filter="all" role="tab" aria-selected="true">Todos</button>
+              <button class="chip" data-filter="top" role="tab" aria-selected="false">🔥 Más votados</button>
+              <button class="chip" data-filter="aire" role="tab" aria-selected="false">Aire libre</button>
+              <button class="chip" data-filter="noche" role="tab" aria-selected="false">De noche</button>
+              <button class="chip" data-filter="comida" role="tab" aria-selected="false">Comida</button>
+              <button class="chip" data-filter="mine" role="tab" aria-selected="false">Mis parches</button>
+            </div>
+            <button type="button" class="btn btn--grad btn--sm" id="newPlanBtn">➕ Proponer un parche</button>
+          </div>
+        </header>
+        <div class="events" id="events"><!-- render JS --></div>
+      </div>
+    </section>
+
+    <!-- 7b. Recuerdos: fotos y videos de los planes -->
+    <section class="section memories" id="recuerdos">
+      <div class="container">
+        <header class="section__head section__head--row reveal">
+          <div>
+            <p class="eyebrow" data-text="mem.eyebrow">Galería</p>
+            <h2 class="brush-title" data-text="mem.title">Recuerdos del parche</h2>
+            <p class="section__lead" data-text="mem.lead">Fotos y videos de los planes que ya hicimos. ¿Fuiste? Sube los tuyos. 📸🎬</p>
+          </div>
+          <div class="plans-tools">
+            <select class="mem-filter" id="memFilter" aria-label="Filtrar por plan"></select>
+            <button type="button" class="btn btn--grad btn--sm" id="memUploadBtn">📤 Subir fotos o videos</button>
+          </div>
+        </header>
+        <div class="mem-grid" id="memGrid"></div>
+      </div>
+    </section>
+
+    <!-- 8. Reglas -->
+    <section class="section rules" id="reglas">
+      <div class="container">
+        <header class="section__head reveal">
+          <p class="eyebrow" data-text="rules.eyebrow">🔥💜 ¡Bienvenidos a ParchéMonos! 💜🔥</p>
+          <h2 class="brush-title" data-text="rules.title">Reglas del parche</h2>
+          <p class="section__lead" data-text="rules.lead">🥳 Este es un espacio para conocer personas nuevas, hacer amistades, organizar salidas y disfrutar buenos parches. ¡La idea es conocer gente chévere y crear buenos momentos! 🫶✨</p>
+        </header>
+
+        <div class="rules__big">
+          <article class="rule-big rule-big--age reveal">
+            <span class="rule-big__num rule-big__num--range" data-text="rules.age.n">18–36</span>
+            <div>
+              <h3 data-text="rules.age.t">Solo de 18 a 36 años</h3>
+              <p data-text="rules.age.d">El grupo, los planes y el chat son exclusivos para personas entre 18 y 36 años. Menores de 18 y mayores de 36 no pueden entrar. Si alguien no cumple la edad, sale del grupo.</p>
+            </div>
+          </article>
+          <article class="rule-big rule-big--zero reveal">
+            <span class="rule-big__num" data-text="rules.zero.n">0</span>
+            <div>
+              <h3 data-text="rules.zero.t">Cero contenido sexual y cero DM sin permiso</h3>
+              <p data-text="rules.zero.d">⚠️ <strong>Importante:</strong> quien incumpla estas normas, especialmente las de contenido sexual o mensajes privados sin autorización, será expulsado del grupo.</p>
+              <p class="rule-big__kick" data-text="rules.zero.k">⛔ Expulsión sin excepción.</p>
+            </div>
+          </article>
+        </div>
+
+        <ol class="rules__list">
+          <li class="reveal"><span>01</span><div><h4 data-text="rule1.t">✅ Preséntate</h4><p data-text="rule1.d">Dinos tu nombre, edad y de dónde eres.</p></div></li>
+          <li class="reveal"><span>02</span><div><h4 data-text="rule2.t">🤝 Respeto ante todo</h4><p data-text="rule2.d">Nada de insultos, acoso, indirectas ni faltas de respeto.</p></div></li>
+          <li class="reveal"><span>03</span><div><h4 data-text="rule3.t">🚫 Nada de contenido sexual</h4><p data-text="rule3.d">No se permite hablar de sexo, enviar stickers pornográficos, imágenes ni contenido sexual.</p></div></li>
+          <li class="reveal"><span>04</span><div><h4 data-text="rule4.t">🔒 Respeta la privacidad</h4><p data-text="rule4.d">Prohibido escribir al DM de cualquier integrante sin su autorización.</p></div></li>
+          <li class="reveal"><span>05</span><div><h4 data-text="rule5.t">❌ Nada de spam</h4><p data-text="rule5.d">No publicidad, cadenas ni enlaces sin permiso de los administradores.</p></div></li>
+          <li class="reveal"><span>06</span><div><h4 data-text="rule6.t">💬 Buena convivencia</h4><p data-text="rule6.d">Evitemos peleas y problemas innecesarios.</p></div></li>
+          <li class="reveal"><span>07</span><div><h4 data-text="rule7.t">🎉 ¡Propón tus parches!</h4><p data-text="rule7.d">Puedes organizar salidas y compartir planes con el grupo.</p></div></li>
+          <li class="reveal"><span>08</span><div><h4 data-text="rule8.t">👑 Respeta a los administradores</h4><p data-text="rule8.d">Sigue las indicaciones para mantener el orden.</p></div></li>
+        </ol>
+
+        <div class="rules__outro reveal">
+          <p data-text="rules.outro">💜 ¡La idea es pasarla bueno, conocer gente y mantener un ambiente sano y agradable para todos! 🫶</p>
+          <button type="button" class="btn btn--ghost btn--sm" data-report>🚩 Reportar a una persona</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. Chat -->
+    <section class="section chat-sec" id="chat">
+      <div class="container chat-sec__inner">
+        <div class="chat-sec__copy reveal">
+          <p class="eyebrow" data-text="chat.eyebrow">Chat del grupo</p>
+          <h2 class="brush-title" data-text="chat.title">Escríbele al grupo</h2>
+          <p class="section__lead" data-text="chat.lead">Propón un plan, pregunta quién se apunta o manda una nota de voz. Todo moderado para que el chat siga siendo un lugar seguro.</p>
+          <ul class="badges badges--stack badges--link">
+            <li><button type="button" data-badge="live"><i class="dot dot--live"></i> Tiempo real</button></li>
+            <li><button type="button" data-badge="audio">🎙️ Notas de voz</button></li>
+            <li><button type="button" data-badge="filter">🛡️ Filtro anti-acoso</button></li>
+            <li><button type="button" data-badge="report">⚑ Reportes anónimos</button></li>
+          </ul>
+        </div>
+
+        <div class="chat-wrap reveal">
+          <div class="chat is-blurred" id="chatApp">
+            <div class="chat__head">
+              <img src="assets/logo.jpg" data-logo alt="" width="42" height="42" />
+              <div>
+                <strong>ParchéMonos 💜</strong>
+                <small><i class="dot dot--live"></i> <span id="online">12</span> en línea</small>
+              </div>
+              <button class="chat__menu chat__menu--report" aria-label="Reportar a una persona" title="Reportar a una persona" data-report>🚩</button>
+              <button class="chat__menu" aria-label="Reglas del chat" title="Reglas" data-goto="#reglas">⋮</button>
+            </div>
+
+            <!-- Mensajes fijados -->
+            <div class="chat__pinned" id="pinnedBar" hidden>
+              <button type="button" class="pinned__main" id="pinnedGo" aria-label="Ir al mensaje fijado">
+                <span class="pinned__icon" aria-hidden="true">📌</span>
+                <span class="pinned__txt"><small id="pinnedLabel">Mensaje fijado</small><b id="pinnedText"></b></span>
+              </button>
+              <button type="button" class="pinned__x" id="pinnedX" aria-label="Desfijar este mensaje" title="Desfijar">✕</button>
+            </div>
+
+            <div class="chat__body" id="chatBody" aria-live="polite">
+              <div class="chat__day">Hoy</div>
+            </div>
+
+            <div class="chat__bar" id="chatBar">
+              <!-- Panel de stickers / GIFs / fotos y videos -->
+              <div class="media-panel" id="mediaPanel" hidden>
+                <div class="media-panel__tabs" role="tablist" aria-label="Tipo de contenido">
+                  <button type="button" role="tab" data-tab="stickers" aria-selected="true">✨ Stickers</button>
+                  <button type="button" role="tab" data-tab="gifs" aria-selected="false">GIF</button>
+                  <button type="button" role="tab" data-tab="files" aria-selected="false">🖼️ Fotos</button>
+                  <button type="button" role="tab" data-tab="poll" aria-selected="false">📊 Encuesta</button>
+                </div>
+                <div class="media-panel__pane" data-pane="stickers">
+                  <div class="sticker-grid" id="stickerGrid"></div>
+                </div>
+                <div class="media-panel__pane" data-pane="gifs" hidden>
+                  <form class="gif-search" id="gifSearch" role="search">
+                    <input type="search" id="gifQuery" placeholder="Buscar GIFs… rumba, risa, fiesta" aria-label="Buscar GIFs" />
+                  </form>
+                  <div class="gif-grid" id="gifGrid"></div>
+                  <p class="media-panel__note" id="gifNote"></p>
+                </div>
+                <div class="media-panel__pane" data-pane="poll" hidden>
+                  <form class="cpoll-form" id="cpollForm" novalidate>
+                    <input type="text" id="cpollQ" maxlength="90" placeholder="Pregunta: ¿Pa' dónde vamos el finde?" aria-label="Pregunta de la encuesta" />
+                    <div class="cpoll-form__opts" id="cpollOpts"></div>
+                    <div class="cpoll-form__row">
+                      <button type="button" class="btn btn--ghost btn--sm" id="cpollAdd">➕ Opción</button>
+                      <button type="submit" class="btn btn--grad btn--sm">📊 Enviar encuesta</button>
+                    </div>
+                  </form>
+                </div>
+                <div class="media-panel__pane" data-pane="files" hidden>
+                  <div class="file-picks">
+                    <button type="button" data-pick="image/*"><span>🖼️</span>Foto</button>
+                    <button type="button" data-pick="video/*"><span>🎬</span>Video</button>
+                    <button type="button" data-pick="image/gif"><span>🌀</span>GIF de tu cel</button>
+                  </div>
+                  <p class="media-panel__note">Fotos hasta 10 MB · videos hasta 30 MB.<br />📵 Nada de fotos o videos de otras personas sin su permiso.</p>
+                </div>
+              </div>
+
+              <!-- Vista previa antes de enviar foto/video -->
+              <div class="chat__preview" id="filePreview" hidden>
+                <div class="chat__preview-media" id="previewMedia"></div>
+                <input type="text" id="previewCaption" placeholder="Añade un mensaje…" maxlength="200" aria-label="Mensaje para la foto o video" />
+                <button type="button" class="icon-btn icon-btn--x" id="previewCancel" aria-label="Cancelar">✕</button>
+                <button type="button" class="icon-btn icon-btn--grad" id="previewSend" aria-label="Enviar">
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3.4 20.4 21 12 3.4 3.6 3.3 10l12.6 2-12.6 2z"/></svg>
+                </button>
+              </div>
+
+              <p class="chat__trial" id="trialBar" hidden></p>
+              <form class="chat__compose" id="composeForm" autocomplete="off">
+                <div class="chat__field">
+                  <button type="button" class="field-btn" id="mediaBtn" aria-label="Stickers, GIFs, fotos y videos" aria-expanded="false" aria-controls="mediaPanel" disabled>😊</button>
+                  <input type="text" id="msgInput" placeholder="Escribe al parche…" maxlength="400" aria-label="Mensaje" disabled />
+                  <button type="button" class="field-btn" id="attachBtn" aria-label="Enviar foto o video" disabled>📎</button>
+                </div>
+                <input type="file" id="fileInput" accept="image/*,video/*" hidden />
+                <button type="button" class="icon-btn" id="micBtn" aria-label="Grabar nota de voz" disabled>🎙️</button>
+                <button type="submit" class="icon-btn icon-btn--grad" aria-label="Enviar" disabled>
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3.4 20.4 21 12 3.4 3.6 3.3 10l12.6 2-12.6 2z"/></svg>
+                </button>
+              </form>
+              <div class="chat__rec" id="recBar" hidden>
+                <button type="button" class="icon-btn icon-btn--x" id="recCancel" aria-label="Cancelar grabación">✕</button>
+                <span class="rec__dot" aria-hidden="true"></span>
+                <span class="rec__time" id="recTime">0:00</span>
+                <span class="wave wave--live" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                <button type="button" class="icon-btn icon-btn--grad" id="recSend" aria-label="Enviar nota de voz">
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3.4 20.4 21 12 3.4 3.6 3.3 10l12.6 2-12.6 2z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="chat__lock" id="chatLock">
+              <div class="lock-card" id="lockCard">
+                <span class="lock-card__icon" id="lockIcon">💬</span>
+                <h3 id="lockTitle">Entra al chat</h3>
+                <p id="lockText">Envía tu solicitud, preséntate y acepta las reglas. Los admins te dan acceso.</p>
+                <button class="btn btn--grad btn--block" id="openJoin">🙋 Solicitar entrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 10. Footer -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <a href="#inicio" class="footer__brand"><span class="t-white" data-text="brand.1">Parché</span><span class="t-lime" data-text="brand.2">Monos</span></a>
+      <p class="footer__tag" data-text="footer.tag">Planes · Amigos · Aventuras — Grupo de salidas</p>
+      <p class="footer__links"><button type="button" class="btn btn--ghost btn--sm" data-report>🚩 Reportar a una persona</button></p>
+      <p class="footer__copy">© <span id="year"></span> ParchéMonos. Hecho con 💜 en Colombia.</p>
+    </div>
+  </footer>
+
+  <!-- Modal: entrar al chat -->
+  <div class="modal" id="joinModal" role="dialog" aria-modal="true" aria-labelledby="joinTitle" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <h3 class="brush-title" id="joinTitle">Solicitud para unirte</h3>
+      <p class="modal__text">Preséntate con el parche. Los admins revisan cada solicitud antes de darte acceso al chat. 🛡️</p>
+      <form id="joinForm" novalidate>
+        <label class="field">
+          <span class="field__label">Apodo (lo que verá el parche) *</span>
+          <input type="text" id="nickInput" maxlength="18" placeholder="Ej: La Caminante, Juanchito…" required />
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">Tu nombre *</span>
+            <input type="text" id="joinName" maxlength="40" placeholder="Solo lo ven los admins" required />
+          </label>
+          <label class="field">
+            <span class="field__label">¿De dónde eres? *</span>
+            <input type="text" id="joinCity" maxlength="40" placeholder="Ciudad o barrio" required />
+          </label>
+        </div>
+        <label class="field">
+          <span class="field__label">Preséntate (opcional)</span>
+          <textarea id="joinIntro" rows="2" maxlength="300" placeholder="¿Qué planes te gustan? ¿Cómo conociste el parche?"></textarea>
+        </label>
+
+        <fieldset class="vis">
+          <legend class="field__label">¿Cómo quieres entrar?</legend>
+          <label class="vis__opt">
+            <input type="radio" name="joinVia" value="normal" checked />
+            <span><b>🙋 Normal</b><small>Los admins revisan tu solicitud.</small></span>
+          </label>
+          <label class="vis__opt">
+            <input type="radio" name="joinVia" value="recomendacion" />
+            <span><b>🤝 Por recomendación</b><small>Un miembro del parche te recomienda. Así es más rápido.</small></span>
+          </label>
+        </fieldset>
+        <label class="field" id="recoField" hidden>
+          <span class="field__label">¿Quién te recomienda? (apodo del miembro) *</span>
+          <input type="text" id="joinReco" list="memberList" maxlength="30" placeholder="Ej: Vale 🌸" />
+          <datalist id="memberList"></datalist>
+        </label>
+
+        <div class="colors" role="radiogroup" aria-label="Color del apodo">
+          <span class="field__label">Tu color</span>
+          <div class="colors__row" id="colorRow"></div>
+        </div>
+        <div class="pact">
+          <p class="pact__title">Me comprometo a:</p>
+          <ul>
+            <li>Presentarme y respetar a todos: nada de insultos, acoso ni indirectas.</li>
+            <li>Cero contenido sexual: ni temas, ni stickers, ni imágenes.</li>
+            <li>No escribirle al DM a nadie sin su autorización.</li>
+            <li>Nada de spam, publicidad, cadenas ni enlaces sin permiso de los admins.</li>
+            <li>Entender que si rompo estas reglas me expulsan sin excepción.</li>
+          </ul>
+          <label class="check">
+            <input type="checkbox" id="pactCheck" required />
+            <span>Acepto las reglas de respeto del parche</span>
+          </label>
+        </div>
+        <p class="field__error" id="joinError" role="alert"></p>
+        <button type="submit" class="btn btn--grad btn--block">Enviar solicitud 🙋</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: reportar a una persona -->
+  <div class="modal" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportTitle" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <h3 class="brush-title" id="reportTitle">Reportar a una persona</h3>
+      <p class="modal__text">Tu reporte les llega directo a los admins del parche. Tú decides si es privado o público.</p>
+      <form id="reportForm" novalidate>
+        <label class="field">
+          <span class="field__label">¿A quién reportas?</span>
+          <input type="text" id="repWho" list="peopleList" maxlength="30" placeholder="Apodo de la persona" required />
+          <datalist id="peopleList"></datalist>
+        </label>
+        <label class="field">
+          <span class="field__label">Motivo</span>
+          <select id="repReason" required>
+            <option value="">Elige un motivo…</option>
+            <option>Acoso o mensajes insistentes</option>
+            <option>Comentarios sexuales o piropos incómodos</option>
+            <option>Fotos, videos o audios sin permiso</option>
+            <option>Discriminación o insultos</option>
+            <option>Amenazas o violencia</option>
+            <option>Parece menor de edad</option>
+            <option>Perfil falso o estafa</option>
+            <option>Otro</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">¿Dónde pasó?</span>
+          <select id="repWhere">
+            <option>En el chat del grupo</option>
+            <option>Por mensaje privado</option>
+            <option>En un plan o salida</option>
+            <option>En redes sociales</option>
+            <option>Otro lugar</option>
+          </select>
+        </label>
+        <div class="rep-evidence" id="repEvidence" hidden></div>
+        <label class="field">
+          <span class="field__label">Cuéntanos qué pasó</span>
+          <textarea id="repDetails" rows="3" maxlength="800" placeholder="Lo que nos cuentes ayuda a los admins a actuar rápido."></textarea>
+        </label>
+        <label class="field">
+          <span class="field__label">Prueba o captura (opcional)</span>
+          <input type="file" id="repFile" accept="image/*" />
+        </label>
+        <fieldset class="vis">
+          <legend class="field__label">Tipo de reporte</legend>
+          <label class="vis__opt">
+            <input type="radio" name="repVis" value="privado" checked />
+            <span><b>🔒 Privado</b><small>Anónimo. Solo lo ven los admins. Nadie sabrá que fuiste tú.</small></span>
+          </label>
+          <label class="vis__opt">
+            <input type="radio" name="repVis" value="publico" id="repPublic" />
+            <span><b>📢 Público</b><small>Les llega a los admins y además se avisa en el chat del grupo, con tu apodo, para que el parche esté pendiente.</small></span>
+          </label>
+        </fieldset>
+        <p class="field__error" id="repError" role="alert"></p>
+        <button type="submit" class="btn btn--grad btn--block">Enviar reporte a los admins 🚩</button>      </form>
+    </div>
+  </div>
+
+  <!-- Modal: proponer un parche -->
+  <div class="modal" id="planModal" role="dialog" aria-modal="true" aria-labelledby="planTitle" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card modal__card--wide">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <h3 class="brush-title" id="planTitle">Propón un parche</h3>
+      <p class="modal__text">Arma el plan, ponle foto y deja que el parche vote. 🎉</p>
+      <form id="planForm" novalidate>
+        <div class="img-pick" id="imgPick">
+          <input type="file" id="planImg" accept="image/*" hidden />
+          <button type="button" class="img-pick__empty" id="planImgBtn">
+            <span>🖼️</span><b>Agregar imagen</b><small>JPG, PNG o WebP · máx. 10 MB</small>
+          </button>
+          <div class="img-pick__preview" id="planImgPreview" hidden>
+            <img alt="Vista previa de la imagen del parche" id="planImgTag" />
+            <button type="button" class="img-pick__remove" id="planImgRemove" aria-label="Quitar imagen">✕</button>
+          </div>
+        </div>
+
+        <label class="field">
+          <span class="field__label">Título *</span>
+          <input type="text" id="planName" maxlength="60" placeholder="Ej: Atardecer en el mirador" required />
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">Categoría *</span>
+            <select id="planCat" required></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Cupos (opcional)</span>
+            <input type="number" id="planCap" min="2" max="200" inputmode="numeric" placeholder="Ej: 20" />
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">Fecha *</span>
+            <input type="date" id="planDate" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Hora *</span>
+            <input type="time" id="planTime" required />
+          </label>
+        </div>
+        <label class="field">
+          <span class="field__label">Dirección *</span>
+          <input type="text" id="planAddr" maxlength="120" placeholder="Ej: Cra. 43A #1-50, Medellín" required />
+        </label>
+        <label class="field">
+          <span class="field__label">Punto de encuentro (opcional)</span>
+          <input type="text" id="planMeet" maxlength="80" placeholder="Ej: Salida de la estación del metro" />
+        </label>
+        <label class="field">
+          <span class="field__label">Descripción *</span>
+          <textarea id="planDesc" rows="3" maxlength="400" placeholder="¿Qué vamos a hacer? ¿Qué hay que llevar? ¿Cuánto cuesta?" required></textarea>
+        </label>
+
+        <div class="poll-builder">
+          <label class="check">
+            <input type="checkbox" id="pollOn" />
+            <span>🗳️ Agregar votación (ej: qué día o qué lugar prefieren)</span>
+          </label>
+          <div id="pollFields" hidden>
+            <label class="field">
+              <span class="field__label">Pregunta</span>
+              <input type="text" id="pollQ" maxlength="80" placeholder="Ej: ¿Qué día les queda mejor?" />
+            </label>
+            <div class="poll-builder__opts" id="pollOpts"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="pollAdd">➕ Agregar opción</button>
+          </div>
+        </div>
+
+        <p class="field__error" id="planError" role="alert"></p>
+        <button type="submit" class="btn btn--grad btn--block">Publicar parche 🔥</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: subir recuerdos -->
+  <div class="modal" id="memModal" role="dialog" aria-modal="true" aria-labelledby="memTitle" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card modal__card--wide">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <h3 class="brush-title" id="memTitle">Sube tus recuerdos</h3>
+      <p class="modal__text">Fotos y videos del plan. Puedes subir varios a la vez.</p>
+      <form id="memForm" novalidate>
+        <input type="file" id="memFiles" accept="image/*,video/*" multiple hidden />
+        <button type="button" class="drop" id="memDrop">
+          <span>📸🎬</span>
+          <b>Toca para elegir o arrastra aquí</b>
+          <small>Fotos hasta 10 MB · videos hasta 50 MB · máx. 10 archivos</small>
+        </button>
+        <div class="mem-previews" id="memPreviews"></div>
+        <label class="field">
+          <span class="field__label">¿De qué plan son? *</span>
+          <select id="memPlan" required></select>
+        </label>
+        <label class="field">
+          <span class="field__label">Descripción (opcional)</span>
+          <input type="text" id="memCaption" maxlength="140" placeholder="Ej: El atardecer más chimba 🌄" />
+        </label>
+        <label class="check">
+          <input type="checkbox" id="memConsent" />
+          <span>Las personas que salen en estas fotos o videos aceptaron que las publique.</span>
+        </label>
+        <p class="field__error" id="memError" role="alert"></p>
+        <button type="submit" class="btn btn--grad btn--block" id="memSubmit">Publicar recuerdos 💜</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Visor de imágenes -->
+  <div class="lightbox" id="lightbox" hidden>
+    <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+    <img alt="" id="lightboxImg" />
+  </div>
+
+  <!-- Modo edición de imágenes (solo admins) -->
+  <input type="file" id="slotFile" accept="image/*" hidden />
+  <div class="slot-menu" id="slotMenu" hidden>
+    <button type="button" id="slotChange">📷 Cambiar imagen</button>
+    <button type="button" id="slotReset">↺ Volver a la original</button>
+  </div>
+  <div class="edit-bar" id="editBar" hidden>
+    <span>🖼️ <b>Modo edición de imágenes</b> · Toca cualquier imagen o ícono con borde amarillo para cambiarlo</span>
+    <div class="edit-bar__btns">
+      <button type="button" class="btn btn--ghost btn--sm" id="editResetAll">↺ Restaurar todo</button>
+      <button type="button" class="btn btn--grad btn--sm" id="editExit">✓ Listo</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- site-data.js lo genera el panel de admins (Publicar). Si no existe, se usa el contenido por defecto. -->
+  <script src="site-data.js"></script>
+  <script src="content.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
