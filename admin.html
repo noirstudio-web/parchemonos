@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es-CO">
 <head>
   <meta charset="utf-8" />
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     body { overflow-x: hidden; }
-    .admin { padding: 20px 0 80px; min-height: 100svh; }
+    .admin { padding-top: calc(20px + env(safe-area-inset-top)); padding-bottom: calc(80px + env(safe-area-inset-bottom)); min-height: 100vh; min-height: 100svh; }
     .admin__top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
     .admin__top img { width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 0 2px var(--pink), var(--glow-pink); }
     .admin__top h1 { margin: 0; font-family: var(--brush); font-weight: 400; font-size: clamp(1.5rem, 6vw, 2.1rem); line-height: 1.1; }
@@ -22,7 +22,7 @@
     .admin__top .btns { display: flex; gap: 8px; flex-wrap: wrap; }
 
     /* Pestañas */
-    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 22px; padding: 4px 16px 10px; position: sticky; top: 0; z-index: 20; background: linear-gradient(180deg, var(--bg) 80%, transparent); }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; margin: 0 0 22px; padding: 4px 0 10px; position: sticky; top: 0; z-index: 20; background: linear-gradient(180deg, var(--bg) 80%, transparent); }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); font-weight: 600; font-size: .9rem; color: var(--muted); white-space: nowrap; }
     .tab:hover { color: var(--text); }
@@ -155,7 +155,7 @@
     .member__info { font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
     .member.is-banned { opacity: .6; }
     /* Tarjetas de roles (más específico que .row para que no lo pise el media query) */
-    .rows .role-row { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 14px 14px 18px; position: relative; overflow: hidden; border-color: color-mix(in srgb, var(--rc) 28%, var(--line)); background: linear-gradient(90deg, color-mix(in srgb, var(--rc) 9%, transparent), transparent 55%), var(--surface); }
+    .rows .role-row { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 14px 14px 18px; position: relative; overflow: hidden; border-color: rgba(255, 255, 255, .14); border-color: color-mix(in srgb, var(--rc) 28%, var(--line)); background: linear-gradient(90deg, rgba(255, 255, 255, .14), transparent 55%), var(--surface); background: linear-gradient(90deg, color-mix(in srgb, var(--rc) 9%, transparent), transparent 55%), var(--surface); }
     .rows .role-row::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--rc); box-shadow: 0 0 14px var(--rc); }
     .role-row__top { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .role-row input[type=text] { height: 46px; padding: 0 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.12); background: rgba(0,0,0,.35); color: var(--text); font: inherit; font-size: 16px; min-width: 0; transition: border-color .2s; }
@@ -171,13 +171,13 @@
     .role-row__lock { width: 36px; height: 36px; display: grid; place-items: center; font-size: .95rem; opacity: .7; }
     .role-row__people { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--line); }
     .role-row__people small { color: var(--muted); font-size: .8rem; }
-    .role-person { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .82rem; font-weight: 700; background: rgba(255,255,255,.06); border: 1px solid color-mix(in srgb, var(--rc) 40%, transparent); }
+    .role-person { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .82rem; font-weight: 700; background: rgba(255,255,255,.06); border: 1px solid rgba(255, 255, 255, .14); border: 1px solid color-mix(in srgb, var(--rc) 40%, transparent); }
     .role-person i { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
     .perms { display: flex; flex-wrap: wrap; gap: 8px; }
     .perms label { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: .84rem; font-weight: 600; cursor: pointer; user-select: none; color: var(--muted); background: rgba(255,255,255,.04); border: 1.5px solid rgba(255,255,255,.1); transition: all .2s; }
     .perms input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
     .perms label::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.35); transition: all .2s; }
-    .perms label:has(input:checked) { color: var(--text); background: color-mix(in srgb, var(--rc) 16%, transparent); border-color: color-mix(in srgb, var(--rc) 60%, transparent); }
+    .perms label:has(input:checked) { color: var(--text); background: rgba(255, 255, 255, .14); background: color-mix(in srgb, var(--rc) 16%, transparent); border-color: rgba(255, 255, 255, .14); border-color: color-mix(in srgb, var(--rc) 60%, transparent); }
     .perms label:has(input:checked)::before { border-color: var(--rc); background: var(--rc); box-shadow: 0 0 8px var(--rc); }
     .perms label:has(input:focus-visible) { outline: 2px solid var(--rc); outline-offset: 2px; }
     .perms label:has(input:disabled) { cursor: not-allowed; opacity: .75; }
@@ -186,7 +186,7 @@
       .role-row input[data-rname] { flex-basis: calc(100% - 120px); }
       .role-row__meta { width: 100%; justify-content: space-between; }
     }
-    .role-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 800; color: var(--rc); background: color-mix(in srgb, var(--rc) 14%, transparent); border: 1px solid color-mix(in srgb, var(--rc) 45%, transparent); }
+    .role-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 800; color: var(--rc); background: rgba(255, 255, 255, .14); background: color-mix(in srgb, var(--rc) 14%, transparent); border: 1px solid rgba(255, 255, 255, .14); border: 1px solid color-mix(in srgb, var(--rc) 45%, transparent); }
 
     /* Cuentas del panel */
     .tab[hidden] { display: none; }
@@ -507,7 +507,7 @@
           <h3>➕ Nueva cuenta</h3>
           <form id="accForm" novalidate>
             <label class="field"><span class="field__label">Usuario (para entrar) *</span><input type="text" id="accUser" maxlength="24" autocapitalize="none" spellcheck="false" placeholder="Ej: vale" /></label>
-            <label class="field"><span class="field__label">Nombre o apodo *</span><input type="text" id="accName" maxlength="40" list="accMembers" placeholder="Ej: Vale 🌸" /><datalist id="accMembers"></datalist></label>
+            <label class="field"><span class="field__label">Nombre o apodo *</span><input type="text" id="accName" maxlength="40" list="accMembers" placeholder="Ej: apodo del admin" /><datalist id="accMembers"></datalist></label>
             <label class="field"><span class="field__label">Rol en el panel *</span><select id="accRole"></select></label>
             <div class="field-row">
               <label class="field"><span class="field__label">Contraseña *</span><input type="text" id="accPass" minlength="8" autocomplete="off" /></label>
@@ -565,6 +565,16 @@
           <button class="btn btn--danger btn--sm" id="discardBtn">Descartar todos mis cambios</button>
         </div>
       </div>
+      <div class="box" id="wipeBox" style="border-color:rgba(255,107,107,.45)">
+        <h3>🧨 Empezar desde cero</h3>
+        <p style="color:var(--muted);margin:0 0 10px;font-size:.9rem">Deja la página y el panel limpios, como nuevos. Solo para 👑 Fundador y 🌳 Co Fundador.</p>
+        <ul style="margin:0 0 14px;padding-left:18px;font-size:.88rem;line-height:1.6">
+          <li>🗑️ <b>Se borra:</b> miembros, solicitudes, reportes, parches, recuerdos, imágenes cambiadas y los demás textos (stickers y palabras bloqueadas vuelven a los de fábrica).</li>
+          <li>✅ <b>Se conserva:</b> roles, reglas, el test, las cuentas del panel y los ajustes de seguridad.</li>
+        </ul>
+        <button class="btn btn--danger btn--sm" id="wipeBtn">🧨 Borrar todo y empezar de cero</button>
+        <p style="color:var(--muted);margin:12px 0 0;font-size:.82rem">Después, ve a <b>🚀 Descargar site-data.js</b> y súbelo para que la página publicada también quede en cero.</p>
+      </div>
     </section>
   </main>
 
@@ -596,7 +606,7 @@
         <label class="field"><span class="field__label">Punto de encuentro</span><input type="text" id="pmMeet" maxlength="80" /></label>
         <label class="field"><span class="field__label">Descripción *</span><textarea id="pmDesc" rows="3" maxlength="400" required></textarea></label>
         <div class="field-row">
-          <label class="field"><span class="field__label">Organiza</span><input type="text" id="pmAuthor" maxlength="30" placeholder="Mono Mod 🛡️" /></label>
+          <label class="field"><span class="field__label">Organiza</span><input type="text" id="pmAuthor" maxlength="30" placeholder="Admins 👑" /></label>
           <label class="field"><span class="field__label">Ya van (número inicial)</span><input type="number" id="pmGoing" min="0" /></label>
         </div>
         <label class="field"><span class="field__label">Votos 🔥 iniciales</span><input type="number" id="pmVotes" min="0" /></label>
