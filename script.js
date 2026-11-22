@@ -1,4 +1,4 @@
-/* ParchéMonos · interacciones de la landing */
+﻿/* ParchéMonos · interacciones de la landing */
 (() => {
   "use strict";
 
@@ -31,6 +31,13 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* modo privado */ } },
   };
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Opciones tipo tarjeta (privado/público, normal/recomendación): se marcan también
+  // en navegadores que no entienden :has() (Safari < 15.4, Firefox viejo)
+  function markVisOpts() { $$(".vis__opt input[type=radio]").forEach((r) => r.closest(".vis__opt").classList.toggle("is-checked", r.checked)); }
+  document.addEventListener("change", (e) => { if (e.target.matches?.(".vis__opt input[type=radio]")) markVisOpts(); });
+  document.addEventListener("reset", () => setTimeout(markVisOpts, 0), true);
+  markVisOpts();
 
   // Imágenes cambiadas por los admins. { slot: dataURL }
   const customImgs = DATA.imgs;
@@ -934,9 +941,7 @@
     };
   })();
 
-  const SEED_MEMS = [
-    { id: "m0", type: "image", url: "assets/logo.jpg", planId: "s1", caption: "El parche viendo la ciudad prendida 🌃", author: "Santi", createdAt: Date.now() - 864e5 * 5 },
-  ];
+  const SEED_MEMS = [];
   const MEM_LIMIT = { image: 10, video: 50 };
   const memGrid = $("#memGrid");
   const memFilter = $("#memFilter");
@@ -1129,13 +1134,7 @@
   const recTime = $("#recTime");
 
   const NICK_COLORS = ["#ff3df0", "#b14dff", "#f5ff3d", "#3dffd0", "#ff9f3d", "#5ab0ff"];
-  const PEOPLE = {
-    "Vale 🌸": "#ff7ad9",
-    "Juanchito": "#f5ff3d",
-    "La Caminante": "#3dffd0",
-    "Mono Mod 🛡️": "#b14dff",
-    "Santi": "#ff9f3d",
-  };
+  const PEOPLE = {};
 
   const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const now = () => new Date().toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
@@ -1230,8 +1229,10 @@
       }).join("")}
       <span class="cpoll__total">${total} voto${total === 1 ? "" : "s"}${p.mine == null ? " · toca una opción para votar" : ""}</span>`;
   }
-  // el parche "vota" de a poquito en las encuestas nuevas (simulado para la demo)
+  // votos simulados: apagados (el chat empieza en cero, solo cuentan votos reales)
+  const SIMULATE = false;
   function simulatePollVotes(el) {
+    if (!SIMULATE) return;
     let n = 3 + Math.floor(Math.random() * 5);
     const tick = () => {
       if (!el.isConnected || n-- <= 0) return;
@@ -1294,17 +1295,8 @@
   const ICON_PLAY = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l12-7.5z"/></svg>`;
   const ICON_PAUSE = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>`;
 
-  // Conversación de ejemplo
+  // El chat empieza vacío (sin conversación de ejemplo)
   addSys("🛡️ Este chat es moderado. Cero acoso. Reporta lo que te incomode, es anónimo.");
-  const firstMod = addMsg({ who: "them", nick: "Mono Mod 🛡️", color: PEOPLE["Mono Mod 🛡️"], text: "¡Buenas, parche! Este sábado: atardecer en el mirador 🌄 ¿Quién se apunta?", time: "6:02 p. m." });
-  togglePin(firstMod, false);
-  addMsg({ who: "them", nick: "Vale 🌸", color: PEOPLE["Vale 🌸"], text: "¡Yo voy! Es mi segundo parche y el primero estuvo una chimba 💜", time: "6:04 p. m." });
-  addMsg({ who: "them", nick: "Vale 🌸", color: PEOPLE["Vale 🌸"], sticker: STICKERS[0], time: "6:04 p. m." });
-  addMsg({ who: "them", nick: "Juanchito", color: PEOPLE["Juanchito"], voice: { dur: 14 }, time: "6:05 p. m." });
-  addMsg({ who: "them", nick: "Santi", color: PEOPLE["Santi"], media: { type: "image", url: slotImg("chat-foto", "assets/logo.jpg"), slot: "chat-foto" }, text: "Así quedó la foto del último parche 😍", time: "6:06 p. m." });
-  addMsg({ who: "me", text: "Me apunto 🙋 ¿A qué hora nos vemos en la estación?", time: "6:07 p. m." });
-  addMsg({ who: "them", nick: "La Caminante", color: PEOPLE["La Caminante"], text: "4:30 en punto. Los que lleguen solos, búsquenme, yo tengo la camiseta morada 😉", time: "6:08 p. m." });
-  addMsg({ who: "them", nick: "Mono Mod 🛡️", color: PEOPLE["Mono Mod 🛡️"], poll: { q: "¿Pa' dónde vamos el próximo finde?", options: [{ t: "🥾 Caminata a la cascada", v: 9 }, { t: "🪩 Karaoke y rumba", v: 14 }, { t: "🍔 Food tour", v: 6 }] }, time: "6:10 p. m." });
 
   // Reproductor de notas de voz (real si hay audio grabado, simulado si no)
   let playing = null;
@@ -1514,7 +1506,7 @@
     if (first) {
       const r = myRole();
       addSys(`💜 ${me.nick} se unió al parche${r.id === "prueba" ? " (en período de prueba 🧪)" : ""}. ¡Bienvenid@!`);
-      setTimeout(() => botSay("Mono Mod 🛡️", `¡Bienvenid@, ${me.nick}! Cuéntanos tu nombre, tu edad y de dónde eres (regla 01) 😉 ¿Pa' dónde te gustaría ir? 🗺️`), 1400);
+      setTimeout(() => addSys(`👋 ${me.nick}, preséntate: tu nombre, tu edad y de dónde eres (regla 01) 😉`), 1400);
     }
   }
 
@@ -1608,8 +1600,9 @@
   function botSay(nick, text) { addMsg({ who: "them", nick, color: PEOPLE[nick], text }); }
   function maybeReply() {
     clearTimeout(typingTimer);
+    if (!SIMULATE) return; // sin respuestas falsas: solo personas reales
     if (Math.random() < 0.35) return;
-    const names = Object.keys(PEOPLE).filter((n) => n !== "Mono Mod 🛡️");
+    const names = Object.keys(PEOPLE);
     typingTimer = setTimeout(() => {
       const nick = names[Math.floor(Math.random() * names.length)];
       if (Math.random() < 0.3) addMsg({ who: "them", nick, color: PEOPLE[nick], sticker: STICKERS[Math.floor(Math.random() * STICKERS.length)] });
@@ -2138,6 +2131,25 @@
 
   // estado de la solicitud / rol al cargar (al final, cuando ya existe todo el chat)
   syncMembership();
+
+  /* Título grande de la portada: se ajusta para que quepa completo en cualquier pantalla
+     (celular pequeño, acostado, tablet, PC o TV) */
+  function fitHeroTitle() {
+    const el = $(".hero__title");
+    if (!el) return;
+    el.style.fontSize = "";
+    const box = el.parentElement.clientWidth;
+    const need = el.scrollWidth * 1.06; // + margen por la inclinación de la letra
+    if (need > box) {
+      const size = parseFloat(getComputedStyle(el).fontSize) * (box / need);
+      el.style.fontSize = `${Math.max(size, 26)}px`;
+    }
+  }
+  fitHeroTitle();
+  document.fonts?.ready?.then(fitHeroTitle);
+  let fitT;
+  window.addEventListener("resize", () => { clearTimeout(fitT); fitT = setTimeout(fitHeroTitle, 120); });
+  window.addEventListener("orientationchange", () => setTimeout(fitHeroTitle, 300));
 
   /* =====================================================
      Cifras automáticas
