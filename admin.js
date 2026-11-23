@@ -279,6 +279,13 @@
     for (const ch of String(nick || "").trim().toLowerCase()) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
     return "PM-" + h.toString(36).toUpperCase().padStart(6, "0").slice(-6);
   }
+  // perfil tipo WhatsApp (foto, @usuario, info) que cada persona pone en "Mi cuenta"
+  const allProfiles = () => ({ ...(SD.profiles || {}), ...(lsGet("pm_profiles") || {}) });
+  function profileOfM(nick) {
+    const p = allProfiles()[String(nick || "").toLowerCase()] || {};
+    const h = p.handle || String(nick || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 20) || "parcero";
+    return { photo: p.photo || null, handle: h, about: p.about || "" };
+  }
   const interactionsOf = (nick) => (lsGet("pm_interactions") || {})[String(nick || "").toLowerCase()] || 0;
   const strikesMax = () => +state.settings.STRIKES_MAX || 3;
   const accountOf = (nick) => accounts.find((a) => (a.nick || a.name || "").toLowerCase() === String(nick || "").toLowerCase());
@@ -424,7 +431,7 @@
       const canEdit = rankOf(m.role) < myRank();
       return `<div class="row member ${banned ? "is-banned" : ""}" data-mi="${i}">
         <div class="member__top">
-          <span class="member__nick"><span class="dot-c" style="background:${esc(m.color)};color:${esc(m.color)}"></span>${esc(m.nick)}${banned ? ` <span class="tag" style="color:#ff6b6b;border-color:#ff6b6b">⛔ Expulsado</span>` : ""}</span>
+          <span class="member__nick">${profileOfM(m.nick).photo ? `<img class="mem-av" src="${esc(profileOfM(m.nick).photo)}" alt="" />` : `<span class="dot-c" style="background:${esc(m.color)};color:${esc(m.color)}"></span>`}${esc(m.nick)} <span class="mem-handle">@${esc(profileOfM(m.nick).handle)}</span>${banned ? ` <span class="tag" style="color:#ff6b6b;border-color:#ff6b6b">⛔ Expulsado</span>` : ""}</span>
           ${canEdit
             ? `<select data-mrole aria-label="Rol de ${esc(m.nick)}">${state.roles.map((r) => `<option value="${esc(r.id)}" ${r.id === m.role ? "selected" : ""} ${rankOf(r.id) >= myRank() ? "disabled" : ""}>${esc(r.emoji)} ${esc(r.name)}</option>`).join("")}</select>`
             : `${roleChip(m.role)} <small style="color:var(--muted)" title="Tiene un rol igual o mayor que el tuyo">🔒</small>`}
@@ -1071,22 +1078,72 @@
   const saveChat = debounce(() => { save("stickers"); save("blocked"); flashSaved("#chatSaved"); });
   renderers.chat = () => {
     $("#stkRows").innerHTML = state.stickers.map((s, i) => `
-      <div class="stk-row" data-si="${i}">
-        <input type="text" maxlength="4" value="${esc(s.e)}" data-se aria-label="Emoji" />
-        <input type="text" maxlength="20" value="${esc(s.t)}" data-st aria-label="Texto del sticker" />
+      <div class="stk-row ${s.img ? "stk-row--img" : ""}" data-si="${i}">
+        ${s.img
+          ? `<span class="stk-row__img"><img src="${esc(s.img)}" alt="" /></span>`
+          : `<input type="text" maxlength="4" value="${esc(s.e)}" data-se aria-label="Emoji" />`}
+        <input type="text" maxlength="20" value="${esc(s.t)}" data-st aria-label="${s.img ? "Nombre del sticker" : "Texto del sticker"}" placeholder="${s.img ? "Nombre (opcional)" : ""}" />
+        <button type="button" class="icon-mini" data-simg aria-label="Poner imagen" title="${s.img ? "Cambiar imagen" : "Usar una imagen (sticker externo)"}">🖼️</button>
         <button type="button" class="icon-mini" data-sdel aria-label="Borrar sticker">✕</button>
       </div>`).join("");
     $("#blockedWords").value = state.blocked.join("\n");
   };
+  // sticker con imagen: PNG / WebP (los de WhatsApp) / GIF animado, 256 px sin perder la transparencia
+  function pickStickerImage() {
+    return new Promise((resolve) => {
+      const inp = document.createElement("input");
+      inp.type = "file";
+      inp.accept = "image/png,image/webp,image/gif,image/jpeg";
+      inp.onchange = () => {
+        const f = inp.files?.[0];
+        if (!f) return resolve(null);
+        if (f.type === "image/gif") {
+          if (f.size > 1.2 * 1024 * 1024) { toast("El GIF pesa más de 1,2 MB."); return resolve(null); }
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = () => resolve(null);
+          fr.readAsDataURL(f);
+          return;
+        }
+        const img = new Image();
+        const url = URL.createObjectURL(f);
+        img.onload = () => {
+          const k = Math.min(1, 256 / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(img.width * k));
+          c.height = Math.max(1, Math.round(img.height * k));
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          let src = c.toDataURL("image/webp", 0.9);
+          if (!src.startsWith("data:image/webp")) src = c.toDataURL("image/png");
+          resolve(src);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); toast("No se pudo leer esa imagen."); resolve(null); };
+        img.src = url;
+      };
+      inp.click();
+    });
+  }
   $("#stkRows").addEventListener("input", (e) => {
     const row = e.target.closest("[data-si]");
     if (!row) return;
     const s = state.stickers[+row.dataset.si];
-    s.e = $("[data-se]", row).value.trim();
+    if ($("[data-se]", row)) s.e = $("[data-se]", row).value.trim();
     s.t = $("[data-st]", row).value.trim();
     saveChat();
   });
-  $("#stkRows").addEventListener("click", (e) => {
+  $("#stkRows").addEventListener("click", async (e) => {
+    const im = e.target.closest("[data-simg]");
+    if (im) {
+      const s = state.stickers[+im.closest("[data-si]").dataset.si];
+      const src = await pickStickerImage();
+      if (!src) return;
+      s.img = src;
+      if (!save("stickers")) { delete s.img; return; }
+      renderers.chat();
+      toast("🖼️ Sticker con imagen listo");
+      return;
+    }
     const b = e.target.closest("[data-sdel]");
     if (!b) return;
     state.stickers.splice(+b.closest("[data-si]").dataset.si, 1);
@@ -1098,6 +1155,14 @@
     save("stickers");
     renderers.chat();
     $$("#stkRows [data-st]").slice(-1)[0]?.select();
+  });
+  $("#stkAddImg")?.addEventListener("click", async () => {
+    const src = await pickStickerImage();
+    if (!src) return;
+    state.stickers.push({ e: "", t: "", img: src });
+    if (!save("stickers")) { state.stickers.pop(); return; }
+    renderers.chat();
+    toast("🖼️ Sticker externo agregado para todo el grupo");
   });
   $("#stkReset").addEventListener("click", () => { state.stickers = clone(D.STICKERS); save("stickers"); renderers.chat(); toast("↺ Stickers originales"); });
   $("#blockedWords").addEventListener("input", (e) => {
@@ -1331,6 +1396,8 @@
     const texts = Object.fromEntries(Object.entries(state.texts).filter(([k, v]) => defText[k] !== v));
     return {
       publishedAt: new Date().toISOString(),
+      // perfiles del chat (foto, @usuario, info) de los miembros activos
+      profiles: Object.fromEntries(Object.entries(allProfiles()).filter(([k]) => state.members.some((m) => m.nick.toLowerCase() === k && m.status !== "expulsado"))),
       texts,
       imgs: state.imgs,
       plans: state.plans,
