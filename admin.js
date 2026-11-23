@@ -143,10 +143,11 @@
     if (pass.length < 8) return (err.textContent = "La contraseña necesita mínimo 8 caracteres.");
     if (pass === DEFAULT_PIN) return (err.textContent = "Usa una contraseña diferente.");
     if (pass !== $("#setupPass2").value) return (err.textContent = "Las contraseñas no coinciden.");
-    const acc = { user, name, role: "fundador", active: true, hash: await hashPass(user, pass), mustChange: false, createdBy: "registro", createdAt: isoToday(), lastLogin: new Date().toISOString() };
+    const acc = { user, name, nick: name, role: "fundador", active: true, hash: await hashPass(user, pass), mustChange: false, createdBy: "registro", createdAt: isoToday(), lastLogin: new Date().toISOString() };
     accounts = [acc];
     if (!saveAccounts()) return;
     current = acc;
+    memberFromAccount(acc); // el Fundador también aparece en el grupo con su apodo y 👑
     try { sessionStorage.setItem("pm_admin_user", user); } catch { /* */ }
     $("#setupView").hidden = true;
     showAdmin();
@@ -270,6 +271,39 @@
   const roleById = (id) => state.roles.find((r) => r.id === id) || state.roles.find((r) => r.id === "miembro");
   const memberByNick = (nick) => state.members.find((m) => m.nick.toLowerCase() === String(nick || "").toLowerCase());
   const roleChip = (id) => { const r = roleById(id); return `<span class="role-chip" style="--rc:${esc(r.color)}">${esc(r.emoji)} ${esc(r.name)}</span>`; };
+
+  /* ---------- Grupo ↔ panel: la misma persona, el mismo nombre y el mismo rol ---------- */
+  // Código único de cada miembro: sale del apodo, así es igual en todos los dispositivos
+  function memberCode(nick) {
+    let h = 2166136261;
+    for (const ch of String(nick || "").trim().toLowerCase()) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    return "PM-" + h.toString(36).toUpperCase().padStart(6, "0").slice(-6);
+  }
+  const interactionsOf = (nick) => (lsGet("pm_interactions") || {})[String(nick || "").toLowerCase()] || 0;
+  const strikesMax = () => +state.settings.STRIKES_MAX || 3;
+  const accountOf = (nick) => accounts.find((a) => (a.nick || a.name || "").toLowerCase() === String(nick || "").toLowerCase());
+
+  // panel → grupo: la cuenta aparece en el grupo con su apodo y su rol
+  function memberFromAccount(a) {
+    const nick = (a.nick || a.name || "").trim();
+    if (!nick) return null;
+    let m = memberByNick(nick);
+    if (!m) {
+      m = { nick, role: a.role, color: "#5ab0ff", status: "activo", joinedAt: isoToday(), code: memberCode(nick), fromPanel: true };
+      state.members.unshift(m);
+    } else m.role = a.role;
+    save("members");
+    return m;
+  }
+  // grupo → panel: si cambia el rol del miembro, cambia su cuenta (o se desactiva si ya no es del equipo)
+  function accountFromMember(m) {
+    const a = accountOf(m.nick);
+    if (!a) return null;
+    if (RANK[m.role] && m.status !== "expulsado") { a.role = m.role; a.active = true; }
+    else a.active = false;
+    saveAccounts();
+    return a;
+  }
   let reqFilter = "pendiente";
 
   function updateReqBadge() {
@@ -336,6 +370,7 @@
         nick: r.nick, color: r.color, role: "miembro", status: "activo",
         joinedAt: today(), trialUntil: null, recommendedBy: r.recommendedBy || null,
         name: r.name, city: r.city, age: r.age || null, requestId: r.id,
+        code: memberCode(r.nick), warnings: [],
       });
       save("members");
       toast(`✅ ${r.nick} ya es 💜 Miembro del parche`);
@@ -402,8 +437,23 @@
           ${m.recommendedBy ? `<span>🤝 Lo recomendó ${esc(m.recommendedBy)}</span>` : ""}
           ${trialLeft != null ? `<span style="color:#ffb46b">🧪 Prueba hasta ${esc(m.trialUntil)} (${trialLeft < 0 ? "ya terminó" : `quedan ${trialLeft} días`})</span>` : ""}
         </div>
+        ${(() => {
+          const warns = m.warnings || [];
+          const max = strikesMax();
+          const acc = accountOf(m.nick);
+          return `<div class="member__info">
+            <span>🆔 <code>${esc(m.code || memberCode(m.nick))}</code></span>
+            <span>💬 ${interactionsOf(m.nick)} interacciones</span>
+            <span class="strikes" title="Strikes">⚠️ ${warns.length}/${max} ${"●".repeat(Math.min(warns.length, max))}${"○".repeat(Math.max(0, max - warns.length))}</span>
+            ${acc ? `<span>🔑 Panel: <code>${esc(acc.user)}</code>${acc.active === false ? " (desactivada)" : ""}</span>` : ""}
+          </div>
+          ${warns.length ? `<ul class="warns">${warns.map((w) => `<li>⚠️ <b>${esc(w.reason)}</b> <small>· ${esc(w.date)} · por ${esc(w.by)}</small></li>`).join("")}</ul>` : ""}`;
+        })()}
         ${canEdit ? `<div class="row__btns" style="justify-content:flex-start">
           ${m.role === "prueba" ? `<button class="btn btn--grad" data-mend>✅ Terminar prueba</button><button class="btn btn--ghost" data-mext>➕ 7 días</button>` : ""}
+          ${!banned ? `<button class="btn btn--ghost" data-mwarn>⚠️ Advertencia</button>` : ""}
+          ${(m.warnings || []).length ? `<button class="btn btn--ghost" data-munwarn>↺ Quitar advertencia</button>` : ""}
+          ${RANK[m.role] && !accountOf(m.nick) && myRank() >= CAN_MANAGE_ACCOUNTS ? `<button class="btn btn--grad" data-mpanel>🔑 Darle acceso al panel</button>` : ""}
           ${banned ? `<button class="btn btn--ghost" data-munban>↺ Readmitir</button>` : `<button class="btn btn--danger" data-mban>⛔ Expulsar</button>`}
           <button class="btn btn--ghost" data-mdelm aria-label="Quitar de la lista">🗑️</button>
         </div>` : ""}
@@ -422,7 +472,9 @@
     if (m.role === "prueba" && !m.trialUntil) m.trialUntil = isoIn(state.settings.TRIAL_DAYS || 15);
     if (m.role !== "prueba") m.trialUntil = null;
     saveMembers();
-    toast(`${m.nick} ahora es ${roleById(m.role).emoji} ${roleById(m.role).name}`);
+    // grupo → panel
+    const a = accountFromMember(m);
+    toast(`${m.nick} ahora es ${roleById(m.role).emoji} ${roleById(m.role).name}${a ? (a.active ? ` · su cuenta del panel (${a.user}) también` : ` · su cuenta del panel (${a.user}) quedó desactivada`) : RANK[m.role] && myRank() >= CAN_MANAGE_ACCOUNTS ? " · dale acceso al panel con 🔑" : ""}`);
     renderers.miembros();
   });
   $("#memberRows").addEventListener("click", (e) => {
@@ -437,13 +489,42 @@
       base.setDate(base.getDate() + 7);
       m.trialUntil = base.toISOString().slice(0, 10);
       toast(`🧪 Prueba de ${m.nick} hasta ${m.trialUntil}`);
+    } else if (e.target.closest("[data-mwarn]")) {
+      const reason = prompt(`Advertencia para ${m.nick}. ¿Qué regla incumplió? (la persona lo verá en "Mi cuenta")`, "");
+      if (!reason || !reason.trim()) return;
+      (m.warnings ||= []).push({ reason: reason.trim(), date: isoToday(), by: current.name || current.user });
+      const n = m.warnings.length, max = strikesMax();
+      toast(`⚠️ ${m.nick}: strike ${n}/${max}`);
+      if (n >= max && confirm(`${m.nick} llegó a ${n}/${max} strikes. ¿Expulsarlo del parche ahora?`)) {
+        m.status = "expulsado";
+        accountFromMember(m);
+        toast(`⛔ ${m.nick} expulsado por llegar a ${max} strikes`);
+      }
+    } else if (e.target.closest("[data-munwarn]")) {
+      const last = (m.warnings || []).slice(-1)[0];
+      if (!last || !confirm(`¿Quitarle a ${m.nick} la advertencia "${last.reason}"?`)) return;
+      m.warnings.pop();
+      toast(`↺ Advertencia quitada · ${m.nick} queda con ${m.warnings.length}/${strikesMax()}`);
+    } else if (e.target.closest("[data-mpanel]")) {
+      // abre Cuentas con el formulario listo: mismo apodo y mismo rol
+      goTab("cuentas");
+      $("#accName").value = m.nick;
+      $("#accRole").value = m.role;
+      $("#accUser").value = m.nick.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9._-]/g, "").slice(0, 24);
+      $("#accPass").value = genPass();
+      $("#accUser").focus();
+      toast("Revisa el usuario y toca 🔑 Crear cuenta");
+      return;
     } else if (e.target.closest("[data-mban]")) {
-      if (!confirm(`¿Expulsar a ${m.nick}? Ya no podrá entrar al chat.`)) return;
+      if (!confirm(`¿Expulsar a ${m.nick}? Ya no podrá entrar al chat${accountOf(m.nick) ? " ni al panel" : ""}.`)) return;
       m.status = "expulsado";
+      accountFromMember(m);
       toast(`⛔ ${m.nick} expulsado`);
-    } else if (e.target.closest("[data-munban]")) { m.status = "activo"; toast(`↺ ${m.nick} readmitido`); }
+    } else if (e.target.closest("[data-munban]")) { m.status = "activo"; accountFromMember(m); toast(`↺ ${m.nick} readmitido`); }
     else if (e.target.closest("[data-mdelm]")) {
-      if (!confirm(`¿Quitar a ${m.nick} de la lista de miembros?`)) return;
+      if (!confirm(`¿Quitar a ${m.nick} de la lista de miembros?${accountOf(m.nick) ? " Su cuenta del panel quedará desactivada." : ""}`)) return;
+      const a = accountOf(m.nick);
+      if (a) { a.active = false; saveAccounts(); }
       state.members.splice(i, 1);
     } else return;
     save("members");
@@ -1104,6 +1185,7 @@
         <div class="acc__info">
           <span>Creada por ${esc(a.createdBy || "—")}${a.createdAt ? ` · ${esc(a.createdAt)}` : ""}</span>
           <span>Último ingreso: ${esc(last)}</span>
+          ${memberByNick(a.nick || a.name) ? `<span>💬 En el grupo: <b style="color:var(--text)">${esc(memberByNick(a.nick || a.name).nick)}</b> · <code>${esc(memberByNick(a.nick || a.name).code || memberCode(a.nick || a.name))}</code></span>` : `<span style="color:#ffb46b">No está en el grupo</span>`}
           ${a.mustChange ? `<span style="color:#ffb46b">Debe cambiar su contraseña</span>` : ""}
         </div>
         ${manage ? `<div class="row__btns" style="justify-content:flex-start">
@@ -1130,11 +1212,18 @@
     if (name.length < 2) return (err.textContent = "Escribe el nombre o apodo de la persona.");
     if (!assignable().includes(role)) return (err.textContent = "Solo puedes dar roles menores al tuyo.");
     if (pass.length < 8) return (err.textContent = "La contraseña necesita mínimo 8 caracteres (usa 🎲 Generar).");
-    accounts.push({ user, name, role, active: true, hash: await hashPass(user, pass), mustChange: true, createdBy: current.user, createdAt: isoToday() });
+    if (accountOf(name)) return (err.textContent = `"${name}" ya tiene una cuenta del panel (${accountOf(name).user}).`);
+    const existing = memberByNick(name);
+    if (existing && rankOf(existing.role) >= myRank()) return (err.textContent = "Esa persona tiene en el grupo un rol igual o mayor al tuyo.");
+    const nick = existing ? existing.nick : name;
+    const acc = { user, name: nick, nick, role, active: true, hash: await hashPass(user, pass), mustChange: true, createdBy: current.user, createdAt: isoToday() };
+    accounts.push(acc);
     if (!saveAccounts()) return;
+    // panel → grupo: misma persona, mismo apodo y mismo rol en el chat
+    const m = memberFromAccount(acc);
     $("#accForm").reset();
     renderers.cuentas();
-    alert(`✅ Cuenta creada\n\nUsuario: ${user}\nContraseña: ${pass}\nRol: ${roleById(role)?.name || role}\n\nCópialos y entrégaselos en privado. Al entrar, le pediremos cambiar la contraseña.\nPara que funcione en otros computadores, ve a 🚀 Publicar.`);
+    alert(`✅ Cuenta creada\n\nUsuario: ${user}\nContraseña: ${pass}\nRol: ${roleById(role)?.name || role}\n${existing ? `Ya estaba en el grupo como "${nick}": ahora su rol en el chat también es ${roleById(role)?.name || role}.` : `Se agregó al grupo como "${nick}" (${m?.code || ""}).`}\n\nCópialos y entrégaselos en privado. Al entrar, le pediremos cambiar la contraseña.\nPara que funcione en otros computadores, ve a 🚀 Publicar.`);
   });
   $("#accRows").addEventListener("change", (e) => {
     const sel = e.target.closest("[data-accrole]");
@@ -1143,7 +1232,8 @@
     if (!a || !canManage(a) || !assignable().includes(sel.value)) { toast("🔒 Solo puedes dar roles menores al tuyo."); renderers.cuentas(); return; }
     a.role = sel.value;
     saveAccounts();
-    toast(`${a.user} ahora es ${roleById(a.role)?.name || a.role}`);
+    memberFromAccount(a); // panel → grupo
+    toast(`${a.user} ahora es ${roleById(a.role)?.name || a.role} · también en el grupo`);
     renderers.cuentas();
   });
   $("#accRows").addEventListener("click", async (e) => {
@@ -1250,7 +1340,7 @@
       settings: state.settings,
       roles: state.roles,
       // a la página pública solo va lo necesario: nada de nombres reales, ciudad ni edad
-      members: state.members.map(({ nick, role, color, status, joinedAt, trialUntil, recommendedBy, demo }) => ({ nick, role, color, status, joinedAt, trialUntil, recommendedBy, demo })),
+      members: state.members.map(({ nick, role, color, status, joinedAt, trialUntil, recommendedBy, demo, code, warnings }) => ({ nick, role, color, status, joinedAt, trialUntil, recommendedBy, demo, code: code || memberCode(nick), warnings: warnings || [] })),
       // para la cifra "Tolerancia al acoso": casos de acoso confirmados (sin datos de nadie)
       stats: {
         harassCases: loadReports().filter((r) => (r.status === "resuelto" || r.status === "expulsado") &&
