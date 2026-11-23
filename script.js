@@ -518,7 +518,7 @@
   $$("a", links).forEach((a) => a.addEventListener("click", closeMenu));
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    closeMenu(); closeJoin(); closeReport(); closeLightbox(); toggleMedia(false); closePlan(); closeMem();
+    closeMenu(); closeJoin(); closeReport(); closeLightbox(); toggleMedia(false); closePlan(); closeMem(); closeMyAcc();
   });
 
   $$("[data-goto]").forEach((b) => b.addEventListener("click", () => $(b.dataset.goto)?.scrollIntoView({ behavior: "smooth" })));
@@ -770,11 +770,12 @@
       const p = planById(go.dataset.go);
       const on = !going.has(p.id);
       on ? going.add(p.id) : going.delete(p.id);
+      if (on) countInteraction();
       saveState(); renderPlans();
       toast(on ? `¡Listo! Te apuntaste a "${p.title}" 🔥` : "Te saliste del plan. ¡Pa' la próxima!");
     } else if (vote) {
       const id = vote.dataset.vote;
-      if (myVotes[id]) delete myVotes[id]; else myVotes[id] = 1;
+      if (myVotes[id]) delete myVotes[id]; else { myVotes[id] = 1; countInteraction(); }
       saveState(); renderPlans();
       if (myVotes[id]) toast("🔥 ¡Votaste por este parche!");
     } else if (pollBtn) {
@@ -1156,6 +1157,8 @@
   let pinIdx = 0;
 
   function addMsg({ who = "me", nick, color, text, voice, sticker, media, poll, time = now() }) {
+    // los mensajes que la persona envía ahora (sin hora fija) cuentan como interacción
+    const live = who === "me" && arguments[0]?.time === undefined;
     const el = document.createElement("div");
     el.className = `msg msg--${who}`;
     el.dataset.mid = `msg${++msgSeq}`;
@@ -1210,6 +1213,7 @@
     if (poll) { el._poll = { q: poll.q, options: poll.options.map((o) => ({ t: o.t, v: o.v || 0 })), mine: null }; renderChatPoll(el); }
     body.appendChild(el);
     scrollDown();
+    if (live) countInteraction();
     return el;
   }
   /* --- Encuestas dentro del chat --- */
@@ -1342,6 +1346,7 @@
       const m = copt.closest(".msg");
       if (!me) { toast("Entra al chat para votar en la encuesta 🗳️"); return; }
       const k = +copt.dataset.copt;
+      if (m._poll.mine == null) countInteraction();
       m._poll.mine = m._poll.mine === k ? null : k;
       renderChatPoll(m);
       return;
@@ -1444,6 +1449,7 @@
   }
 
   function setLock(state, req) {
+    showMyAccButtons(false);
     chatApp.classList.add("is-blurred");
     [input, micBtn, sendBtn, $("#mediaBtn"), $("#attachBtn")].forEach((el) => (el.disabled = true));
     $("#trialBar").hidden = true;
@@ -1499,6 +1505,7 @@
   }
 
   function unlockChat(first) {
+    showMyAccButtons(true);
     chatApp.classList.remove("is-blurred");
     [input, micBtn, sendBtn, $("#mediaBtn")].forEach((el) => (el.disabled = false));
     $$("[data-join]").forEach((a) => (a.textContent = a.classList.contains("btn--sm") ? "Al chat" : a.textContent));
@@ -1541,8 +1548,87 @@
     setLock(req ? req.status : "nuevo", req);
   }
   window.addEventListener("storage", (e) => {
-    if (["pm_requests", "pm_members", "pm_roles"].includes(e.key)) syncMembership(true);
+    if (["pm_requests", "pm_members", "pm_roles"].includes(e.key)) { syncMembership(true); if (!accModal.hidden) renderMyAcc(); }
+    if (e.key === "pm_interactions" && !accModal.hidden) renderMyAcc();
   });
+
+  /* =====================================================
+     Mi cuenta: código único, interacciones, strikes y advertencias
+     ===================================================== */
+  // mismo cálculo que el panel: el código sale del apodo y es igual en cualquier dispositivo
+  function memberCode(nick) {
+    let h = 2166136261;
+    for (const ch of String(nick || "").trim().toLowerCase()) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    return "PM-" + h.toString(36).toUpperCase().padStart(6, "0").slice(-6);
+  }
+  function myInteractions() { return (readLS("pm_interactions") || {})[String(me?.nick || "").toLowerCase()] || 0; }
+  function countInteraction() {
+    if (!me) return;
+    const all = readLS("pm_interactions") || {};
+    const k = me.nick.toLowerCase();
+    all[k] = (all[k] || 0) + 1;
+    try { localStorage.setItem("pm_interactions", JSON.stringify(all)); } catch { /* */ }
+    if (!accModal.hidden) renderMyAcc();
+  }
+  const accModal = $("#accModal");
+  function panelAccountOf(nick) {
+    const list = readLS("pm_admin_accounts") || window.SITE_DATA?.adminAccounts || [];
+    return list.find((a) => (a.nick || a.name || "").toLowerCase() === String(nick || "").toLowerCase() && a.active !== false) || null;
+  }
+  function renderMyAcc() {
+    if (!me) return;
+    const m = myMember() || { nick: me.nick, color: me.color, role: "miembro" };
+    const r = myRole();
+    const warns = m.warnings || [];
+    const max = +CONFIG.STRIKES_MAX || 3;
+    const color = me.color || m.color || "#ff3df0";
+    $("#accAvatar").textContent = (me.nick.match(/\p{L}|\p{N}/u) || ["?"])[0].toUpperCase();
+    $("#accAvatar").style.background = color;
+    $("#accAvatar").style.setProperty("--ac", color);
+    $("#accTitle").textContent = me.nick;
+    $("#accRole").innerHTML = `<em class="role-badge" style="--rc:${esc(r.color)}">${esc(r.emoji)} ${esc(r.name)}</em>`;
+    $("#accCode").textContent = m.code || memberCode(me.nick);
+    $("#accInter").textContent = myInteractions();
+    const st = $("#accStrikes");
+    st.textContent = `${warns.length}/${max}`;
+    st.className = warns.length >= max - 1 && warns.length ? "is-danger" : warns.length ? "is-warn" : "";
+    $("#accSince").textContent = m.joinedAt ? fromISO(m.joinedAt).toLocaleDateString("es-CO", { month: "short", year: "numeric" }) : "Hoy";
+    $("#accBar").innerHTML = Array.from({ length: max }, (_, i) => `<i class="${i < warns.length ? "is-on" : ""}"></i>`).join("");
+    $("#accHint").textContent = warns.length
+      ? (warns.length >= max ? "Llegaste al límite de strikes: los admins pueden expulsarte del parche." : `Te ${max - warns.length === 1 ? "queda 1 strike" : `quedan ${max - warns.length} strikes`} antes de la expulsión. Cuida las reglas 💜`)
+      : `Con ${max} strikes se expulsa del parche. ¡Vas perfecto!`;
+    $("#accWarns").innerHTML = warns.length
+      ? warns.slice().reverse().map((w) => `<li>⚠️ ${esc(w.reason)}<small>${esc(w.date || "")}${w.by ? ` · por ${esc(w.by)}` : ""}</small></li>`).join("")
+      : `<li class="is-empty">✅ No tienes advertencias. ¡Sigue así! 💜</li>`;
+    const extra = [];
+    if (m.role === "prueba" && m.trialUntil) extra.push(`🧪 Período de prueba hasta el <b>${esc(fromISO(m.trialUntil).toLocaleDateString("es-CO", { day: "numeric", month: "long" }))}</b>.`);
+    if (m.recommendedBy) extra.push(`🤝 Te recomendó <b>${esc(m.recommendedBy)}</b>.`);
+    const pa = panelAccountOf(me.nick);
+    if (pa) extra.push(`🔑 Eres parte del equipo: tienes acceso al <a href="admin.html">panel de admins</a> con el usuario <b>${esc(pa.user)}</b>.`);
+    $("#accExtra").innerHTML = extra.map((x) => `<p>${x}</p>`).join("");
+  }
+  function openMyAcc() {
+    if (!me) { toast("🙋 Primero entra al grupo para ver tu cuenta."); return; }
+    closeMenu();
+    renderMyAcc();
+    lastFocus = document.activeElement;
+    accModal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeMyAcc() {
+    if (accModal.hidden) return;
+    accModal.hidden = true;
+    document.body.style.overflow = "";
+    lastFocus?.focus?.({ preventScroll: true });
+  }
+  $$("[data-myacc]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openMyAcc(); }));
+  $$("[data-close]", accModal).forEach((el) => el.addEventListener("click", closeMyAcc));
+  $("#accCopy").addEventListener("click", async () => {
+    const code = $("#accCode").textContent;
+    try { await navigator.clipboard.writeText(code); toast(`📋 Código ${code} copiado`); }
+    catch { prompt("Copia tu código:", code); }
+  });
+  function showMyAccButtons(on) { $$("[data-myacc]").forEach((b) => (b.hidden = !on)); }
 
   $("#joinForm").addEventListener("submit", (e) => {
     e.preventDefault();
