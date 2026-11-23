@@ -202,6 +202,12 @@
     .role-access span { color: var(--muted); }
     #meBtn .role-chip { margin-left: 2px; }
 
+    /* Strikes y advertencias */
+    .member__info code { font-size: .78rem; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.07); color: var(--lime); }
+    .strikes { color: #ffb46b; letter-spacing: .05em; }
+    .warns { list-style: none; margin: 0; padding: 8px 12px; border-radius: 12px; background: rgba(255, 90, 90, .07); border: 1px solid rgba(255, 90, 90, .3); display: grid; gap: 4px; font-size: .85rem; }
+    .warns small { color: var(--muted); }
+
     .pin { max-width: 380px; margin: 12vh auto 0; text-align: center; }
     .pin .gate__card { animation: none; }
 
@@ -477,6 +483,8 @@
           <h3>🙋 Ingreso al chat</h3>
           <label class="field"><span class="field__label">Días del período de prueba</span><input type="number" min="1" max="365" data-set="TRIAL_DAYS" /></label>
           <small class="hint" style="color:var(--muted)">Es lo que se propone al tocar "🧪 Aceptar a prueba". Durante la prueba la persona solo puede enviar texto, stickers y notas de voz (rol "En prueba").</small>
+          <label class="field" style="margin-top:12px"><span class="field__label">⚠️ Strikes para expulsión</span><input type="number" min="1" max="10" data-set="STRIKES_MAX" placeholder="3" /></label>
+          <small class="hint" style="color:var(--muted)">Cada advertencia es un strike. Al llegar a este número el panel te propone expulsar a la persona.</small>
         </div>
         <div class="box">
           <h3>🌐 Conexión</h3>
