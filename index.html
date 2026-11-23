@@ -406,6 +406,7 @@
                   <button type="button" role="tab" data-tab="poll" aria-selected="false">📊 Encuesta</button>
                 </div>
                 <div class="media-panel__pane" data-pane="stickers">
+                  <input type="file" id="stkFile" accept="image/png,image/webp,image/gif,image/jpeg" multiple hidden />
                   <div class="sticker-grid" id="stickerGrid"></div>
                 </div>
                 <div class="media-panel__pane" data-pane="gifs" hidden>
@@ -446,6 +447,7 @@
               </div>
 
               <p class="chat__trial" id="trialBar" hidden></p>
+              <div class="mention-box" id="mentionBox" role="listbox" aria-label="Mencionar a" hidden></div>
               <form class="chat__compose" id="composeForm" autocomplete="off">
                 <div class="chat__field">
                   <button type="button" class="field-btn" id="mediaBtn" aria-label="Stickers, GIFs, fotos y videos" aria-expanded="false" aria-controls="mediaPanel" disabled>😊</button>
@@ -739,12 +741,32 @@
     <div class="modal__card">
       <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
       <div class="myacc__head">
-        <span class="myacc__avatar" id="accAvatar"></span>
+        <button type="button" class="myacc__avatar" id="accAvatar" title="Cambiar foto de perfil" aria-label="Cambiar foto de perfil"></button>
         <div>
           <h3 class="myacc__nick" id="accTitle"></h3>
+          <small class="myacc__handle" id="accHandle"></small>
           <span id="accRole"></span>
         </div>
       </div>
+
+      <!-- Perfil tipo WhatsApp -->
+      <form class="myacc__profile" id="pfForm" novalidate>
+        <input type="file" id="pfPhotoFile" accept="image/*" hidden />
+        <div class="myacc__photo-btns">
+          <button type="button" class="btn btn--ghost btn--sm" id="pfPhotoBtn">📷 Foto de perfil</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="pfPhotoDel" hidden>🗑️ Quitar foto</button>
+        </div>
+        <label class="field">
+          <span class="field__label">Tu @usuario (para que te mencionen)</span>
+          <span class="at-input"><b>@</b><input type="text" id="pfHandle" maxlength="20" autocapitalize="none" spellcheck="false" placeholder="tu_usuario" /></span>
+        </label>
+        <label class="field">
+          <span class="field__label">Info (como el estado de WhatsApp)</span>
+          <input type="text" id="pfAbout" maxlength="120" placeholder="¡Hola! Estoy en ParchéMonos 💜" />
+        </label>
+        <p class="field__error" id="pfErr" role="alert"></p>
+        <button type="submit" class="btn btn--grad btn--block btn--sm">💾 Guardar perfil</button>
+      </form>
 
       <div class="myacc__code">
         <small>Tu código único</small>
@@ -765,6 +787,27 @@
       <ul class="myacc__warns" id="accWarns"></ul>
 
       <div class="myacc__extra" id="accExtra"></div>
+    </div>
+  </div>
+
+  <!-- Perfil de otra persona del chat -->
+  <div class="modal" id="profModal" role="dialog" aria-modal="true" aria-labelledby="profName" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card profile-card">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <div class="profile-card__photo" id="profPhoto"></div>
+      <h3 class="profile-card__name" id="profName"></h3>
+      <p class="profile-card__handle" id="profHandle"></p>
+      <div id="profRole"></div>
+      <div class="profile-card__about">
+        <small>Info</small>
+        <p id="profAbout"></p>
+      </div>
+      <p class="profile-card__meta"><span>🆔 <b id="profCode"></b></span> <span id="profSince"></span></p>
+      <div class="profile-card__btns">
+        <button type="button" class="btn btn--grad btn--sm" id="profMention">@ Mencionar</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="profReport">🚩 Reportar</button>
+      </div>
     </div>
   </div>
 
