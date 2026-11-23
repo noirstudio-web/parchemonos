@@ -160,6 +160,7 @@
         <a href="#recuerdos">Recuerdos</a>
         <a href="#reglas">Reglas</a>
         <a href="#chat">Chat</a>
+        <a href="#chat" id="navMyAcc" data-myacc hidden>👤 Mi cuenta</a>
         <a href="#chat" class="btn btn--grad btn--sm nav__cta-mobile" data-join>Únete</a>
       </nav>
       <a href="#chat" class="btn btn--grad btn--sm nav__cta" data-join>Únete</a>
@@ -378,6 +379,7 @@
                 <small><i class="dot dot--live"></i> <span id="online">12</span> en línea</small>
               </div>
               <button class="chat__menu chat__menu--report" aria-label="Reportar a una persona" title="Reportar a una persona" data-report>🚩</button>
+              <button class="chat__menu" id="myAccBtn" aria-label="Mi cuenta" title="Mi cuenta" data-myacc hidden>👤</button>
               <button class="chat__menu" aria-label="Reglas del chat" title="Reglas" data-goto="#reglas">⋮</button>
             </div>
 
@@ -728,6 +730,41 @@
         <p class="field__error" id="memError" role="alert"></p>
         <button type="submit" class="btn btn--grad btn--block" id="memSubmit">Publicar recuerdos 💜</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Mi cuenta (miembros del grupo) -->
+  <div class="modal" id="accModal" role="dialog" aria-modal="true" aria-labelledby="accTitle" hidden>
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__card">
+      <button class="modal__x" aria-label="Cerrar" data-close>✕</button>
+      <div class="myacc__head">
+        <span class="myacc__avatar" id="accAvatar"></span>
+        <div>
+          <h3 class="myacc__nick" id="accTitle"></h3>
+          <span id="accRole"></span>
+        </div>
+      </div>
+
+      <div class="myacc__code">
+        <small>Tu código único</small>
+        <b id="accCode"></b>
+        <button type="button" class="btn btn--ghost btn--sm" id="accCopy">📋 Copiar</button>
+      </div>
+
+      <div class="myacc__stats">
+        <div><b id="accInter">0</b><span>💬 Interacciones</span></div>
+        <div><b id="accStrikes">0/3</b><span>⚠️ Strikes</span></div>
+        <div><b id="accSince">—</b><span>📅 Miembro desde</span></div>
+      </div>
+
+      <div class="myacc__bar" id="accBar" aria-hidden="true"></div>
+      <p class="myacc__hint" id="accHint"></p>
+
+      <h4 class="myacc__title">⚠️ Advertencias</h4>
+      <ul class="myacc__warns" id="accWarns"></ul>
+
+      <div class="myacc__extra" id="accExtra"></div>
     </div>
   </div>
 
