@@ -1295,6 +1295,37 @@ body.is-editing .chat__lock { display: none; }
 }
 
 /* =========================================================
+   Mi cuenta (código único, interacciones, strikes, advertencias)
+   ========================================================= */
+.chat__head .chat__menu ~ .chat__menu { margin-left: 0; }
+.myacc__head { display: flex; align-items: center; gap: 14px; margin: 4px 0 18px; padding-right: 40px; }
+.myacc__avatar { flex: 0 0 auto; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-family: var(--brush); font-size: 1.6rem; color: #14001c; box-shadow: 0 0 0 3px rgba(255, 255, 255, .12), 0 0 22px var(--ac, #ff3df0); }
+.myacc__nick { margin: 0 0 4px; font-size: 1.3rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.myacc__nick + span .role-badge { margin-left: 0; font-size: .74rem; padding: 2px 9px; }
+.myacc__code { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; padding: 14px 16px; border-radius: 16px; background: rgba(245, 255, 61, .06); border: 1px dashed rgba(245, 255, 61, .45); margin-bottom: 12px; }
+.myacc__code small { width: 100%; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.myacc__code b { font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; font-size: 1.35rem; letter-spacing: .08em; color: var(--lime); margin-right: auto; }
+.myacc__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.myacc__stats div { padding: 12px 8px; border-radius: 14px; text-align: center; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); min-width: 0; }
+.myacc__stats b { display: block; font-family: var(--brush); font-weight: 400; font-size: 1.5rem; line-height: 1.1; color: #fff; overflow-wrap: anywhere; }
+.myacc__stats span { font-size: .72rem; color: var(--muted); }
+.myacc__stats b.is-warn { color: #ffb46b; }
+.myacc__stats b.is-danger { color: #ff6b6b; }
+.myacc__bar { display: flex; gap: 6px; margin-bottom: 6px; }
+.myacc__bar i { flex: 1; height: 8px; border-radius: 8px; background: rgba(255, 255, 255, .1); }
+.myacc__bar i.is-on { background: linear-gradient(90deg, #ff9f3d, #ff5a5a); box-shadow: 0 0 10px rgba(255, 90, 90, .6); }
+.myacc__hint { margin: 0 0 16px; font-size: .82rem; color: var(--muted); }
+.myacc__title { margin: 0 0 8px; font-size: .95rem; }
+.myacc__warns { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+.myacc__warns li { padding: 10px 12px; border-radius: 12px; font-size: .88rem; background: rgba(255, 90, 90, .08); border: 1px solid rgba(255, 90, 90, .3); }
+.myacc__warns li small { display: block; color: var(--muted); font-size: .76rem; margin-top: 2px; }
+.myacc__warns li.is-empty { background: rgba(61, 255, 154, .06); border-color: rgba(61, 255, 154, .3); color: #b9ffd9; }
+.myacc__extra { display: grid; gap: 8px; font-size: .86rem; color: var(--muted); }
+.myacc__extra p { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
+.myacc__extra a { color: var(--lime); text-decoration: underline; }
+@media (max-width: 360px) { .myacc__stats { grid-template-columns: 1fr 1fr; } .myacc__stats div:last-child { grid-column: 1 / -1; } }
+
+/* =========================================================
    Compatibilidad con todos los dispositivos
    (celulares pequeños y grandes, tablets, PC, TV, iPhone/Safari, Android)
    ========================================================= */
