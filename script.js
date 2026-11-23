@@ -1,4 +1,4 @@
-﻿/* ParchéMonos · interacciones de la landing */
+/* ParchéMonos · interacciones de la landing */
 (() => {
   "use strict";
 
@@ -518,7 +518,7 @@
   $$("a", links).forEach((a) => a.addEventListener("click", closeMenu));
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    closeMenu(); closeJoin(); closeReport(); closeLightbox(); toggleMedia(false); closePlan(); closeMem(); closeMyAcc();
+    closeMenu(); closeJoin(); closeReport(); closeLightbox(); toggleMedia(false); closePlan(); closeMem(); closeMyAcc(); closeProfile();
   });
 
   $$("[data-goto]").forEach((b) => b.addEventListener("click", () => $(b.dataset.goto)?.scrollIntoView({ behavior: "smooth" })));
@@ -1149,7 +1149,10 @@
 
   // Stickers del parche
   const STICKERS = DATA.stickers.map((s, i) => ({ ...s, c: (i % 4) + 1 }));
-  const stickerHtml = (s) => `<span class="stk stk--${s.c}"><span>${s.e}</span><b>${esc(s.t)}</b></span>`;
+  // sticker de emoji+texto o sticker con imagen (externo: PNG, WebP de WhatsApp, GIF animado…)
+  const stickerHtml = (s) => s.img
+    ? `<span class="stk stk--img"><img src="${esc(s.img)}" alt="${esc(s.t || "Sticker")}" loading="lazy" draggable="false" /></span>`
+    : `<span class="stk stk--${s.c}"><span>${s.e}</span><b>${esc(s.t)}</b></span>`;
 
   const KIND_LABEL = { text: "Mensaje", voice: "Nota de voz", sticker: "Sticker", image: "Foto", gif: "GIF", video: "Video", poll: "Encuesta" };
   let msgSeq = 0;
@@ -1168,7 +1171,12 @@
       const r = roleById(mem.role);
       badge = ` <em class="role-badge" style="--rc:${esc(r.color)}" title="${esc(r.name)}">${esc(r.emoji)} ${esc(r.name)}</em>`;
     }
-    const nickHtml = who === "them" ? `<span class="msg__nick" style="color:${color}">${esc(nick)}${badge}</span>` : "";
+    const prof = who === "them" ? profileOf(nick) : null;
+    const nickHtml = who === "them"
+      ? `<button type="button" class="msg__nick" data-profile="${esc(nick)}" style="color:${color}">${esc(nick)} <small class="msg__handle">@${esc(prof.handle)}</small>${badge}</button>`
+      : "";
+    // foto de perfil al lado de los mensajes de los demás (como en los grupos de WhatsApp)
+    const avatar = who === "them" ? `<button type="button" class="msg__av" data-profile="${esc(nick)}" aria-label="Ver perfil de ${esc(nick)}">${avatarInner(nick, color)}</button>` : "";
     let content;
     let bubble = "msg__bubble";
     let kind = "text";
@@ -1195,16 +1203,16 @@
         ? `<video src="${esc(media.url)}" controls playsinline preload="metadata"></video>`
         : `<button type="button" class="media" data-full="${esc(media.url)}" ${media.slot ? `data-slot="${esc(media.slot)}"` : ""} aria-label="Ver en grande"><img src="${esc(media.url)}" alt="${media.type === "gif" ? "GIF" : "Foto"} enviada al chat" loading="lazy" /></button>`;
       if (media.type === "gif") content += `<span class="msg__tag">GIF</span>`;
-      if (text) content += `<span class="msg__text">${esc(text)}</span>`;
+      if (text) content += `<span class="msg__text">${msgText(text, el)}</span>`;
     } else {
-      content = `<span class="msg__text">${esc(text)}</span>`;
+      content = `<span class="msg__text">${msgText(text, el)}</span>`;
     }
     const report = who === "them" ? `<button class="msg__report" type="button">⚑ reportar</button>` : `<span aria-label="Enviado">✓✓</span>`;
     const pinBtn = `<button class="msg__pin" type="button" aria-label="Fijar mensaje" title="Fijar mensaje">📌</button>`;
-    el.innerHTML = `<div class="${bubble}">${nickHtml}${content}<div class="msg__meta"><span>${time}</span>${pinBtn}${report}</div></div>`;
+    el.innerHTML = `${avatar}<div class="${bubble}">${nickHtml}${content}<div class="msg__meta"><span>${time}</span>${pinBtn}${report}</div></div>`;
     if (voice?.url) $(".voice", el).dataset.url = voice.url;
     // datos que viajan como prueba si alguien reporta este mensaje
-    const shown = sticker ? `${sticker.e} ${sticker.t}` : poll ? poll.q : text || "";
+    const shown = sticker ? (sticker.img ? "[Sticker con imagen]" : `${sticker.e} ${sticker.t}`) : poll ? poll.q : text || "";
     el._pm = { nick: who === "them" ? nick : "", kind, text: shown, time };
     // texto corto para la barra de fijados
     const icon = { voice: "🎤 Nota de voz", sticker: "", image: "📷 Foto", gif: "🎞️ GIF", video: "🎬 Video", poll: "📊 " }[kind] ?? "";
@@ -1582,10 +1590,11 @@
     const warns = m.warnings || [];
     const max = +CONFIG.STRIKES_MAX || 3;
     const color = me.color || m.color || "#ff3df0";
-    $("#accAvatar").textContent = (me.nick.match(/\p{L}|\p{N}/u) || ["?"])[0].toUpperCase();
     $("#accAvatar").style.background = color;
     $("#accAvatar").style.setProperty("--ac", color);
+    if (pendingPhoto === undefined) paintMyAvatar(profileOf(me.nick).photo);
     $("#accTitle").textContent = me.nick;
+    $("#accHandle").textContent = `@${profileOf(me.nick).handle}${profileOf(me.nick).about ? ` · ${profileOf(me.nick).about}` : ""}`;
     $("#accRole").innerHTML = `<em class="role-badge" style="--rc:${esc(r.color)}">${esc(r.emoji)} ${esc(r.name)}</em>`;
     $("#accCode").textContent = m.code || memberCode(me.nick);
     $("#accInter").textContent = myInteractions();
@@ -1610,6 +1619,7 @@
   function openMyAcc() {
     if (!me) { toast("🙋 Primero entra al grupo para ver tu cuenta."); return; }
     closeMenu();
+    fillProfileForm();
     renderMyAcc();
     lastFocus = document.activeElement;
     accModal.hidden = false;
@@ -1629,6 +1639,294 @@
     catch { prompt("Copia tu código:", code); }
   });
   function showMyAccButtons(on) { $$("[data-myacc]").forEach((b) => (b.hidden = !on)); }
+
+  /* =====================================================
+     Perfil tipo WhatsApp: foto, @usuario e info · @menciones
+     ===================================================== */
+  function myNick() { try { return me?.nick || null; } catch { return null; } } // seguro aunque "me" aún no exista
+  function normHandle(s) {
+    return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_.]/g, "").slice(0, 20);
+  }
+  function readProfiles() { return { ...(window.SITE_DATA?.profiles || {}), ...(readLS("pm_profiles") || {}) }; }
+  function profileOf(nick) {
+    const p = readProfiles()[String(nick || "").toLowerCase()] || {};
+    return { photo: p.photo || null, handle: p.handle || normHandle(nick) || "parcero", about: p.about || "" };
+  }
+  function saveMyProfile(patch) {
+    const all = readLS("pm_profiles") || {};
+    const k = myNick().toLowerCase();
+    all[k] = { ...(all[k] || {}), ...patch };
+    try { localStorage.setItem("pm_profiles", JSON.stringify(all)); return true; } catch { return false; }
+  }
+  // todas las personas que se pueden mencionar: miembros + quienes han escrito en el chat
+  function knownNicks() {
+    const map = new Map();
+    (members || []).forEach((m) => { if (m.status !== "expulsado") map.set(m.nick.toLowerCase(), m.nick); });
+    Object.keys(PEOPLE).forEach((n) => map.set(n.toLowerCase(), n));
+    $$(".msg__nick[data-profile]", body).forEach((b) => map.set(b.dataset.profile.toLowerCase(), b.dataset.profile));
+    const mine = myNick();
+    if (mine) map.set(mine.toLowerCase(), mine);
+    return [...map.values()];
+  }
+  function nickByHandle(h) { h = normHandle(h); return knownNicks().find((n) => profileOf(n).handle === h) || null; }
+  const initialOf = (nick) => (String(nick || "").match(/\p{L}|\p{N}/u) || ["?"])[0].toUpperCase();
+  function avatarInner(nick, color) {
+    const p = profileOf(nick);
+    return p.photo
+      ? `<img src="${esc(p.photo)}" alt="" loading="lazy" />`
+      : `<span style="background:${esc(color || memberByNick(nick)?.color || "#b14dff")}">${esc(initialOf(nick))}</span>`;
+  }
+  // texto del mensaje con @menciones resaltadas (y avisa si te mencionan a ti)
+  function msgText(text, el) {
+    const mine = myNick();
+    const myHandle = mine ? profileOf(mine).handle : null;
+    return esc(text).replace(/(^|[\s(¡¿])@([a-z0-9_.]{2,20})/gi, (m, pre, h) => {
+      const n = nickByHandle(h);
+      if (!n) return m;
+      if (myHandle && normHandle(h) === myHandle && el?.classList.contains("msg--them")) el.classList.add("msg--mentioned");
+      return `${pre}<button type="button" class="mention" data-profile="${esc(n)}">@${esc(normHandle(h))}</button>`;
+    });
+  }
+
+  // Ver el perfil de alguien (toca su foto, su nombre o su @)
+  const profModal = $("#profModal");
+  let profNick = null;
+  function openProfile(nick) {
+    if (!nick) return;
+    if (myNick() && nick.toLowerCase() === myNick().toLowerCase()) { openMyAcc(); return; }
+    profNick = nick;
+    const p = profileOf(nick);
+    const m = memberByNick(nick);
+    const r = m ? roleById(m.role) : null;
+    $("#profPhoto").innerHTML = avatarInner(nick, m?.color);
+    $("#profName").textContent = nick;
+    $("#profHandle").textContent = `@${p.handle}`;
+    $("#profRole").innerHTML = r ? `<em class="role-badge" style="--rc:${esc(r.color)}">${esc(r.emoji)} ${esc(r.name)}</em>` : "";
+    $("#profAbout").textContent = p.about || "¡Hola! Estoy en ParchéMonos 💜";
+    $("#profCode").textContent = m?.code || memberCode(nick);
+    $("#profSince").textContent = m?.joinedAt ? `Miembro desde ${fromISO(m.joinedAt).toLocaleDateString("es-CO", { month: "long", year: "numeric" })}` : "";
+    lastFocus = document.activeElement;
+    profModal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeProfile() {
+    if (profModal.hidden) return;
+    profModal.hidden = true;
+    document.body.style.overflow = "";
+    lastFocus?.focus?.({ preventScroll: true });
+  }
+  $$("[data-close]", profModal).forEach((el) => el.addEventListener("click", closeProfile));
+  $("#profMention").addEventListener("click", () => {
+    const h = profileOf(profNick).handle;
+    closeProfile();
+    if (!me) { toast("🙋 Entra al grupo para mencionar a alguien."); return; }
+    input.value = `${input.value.replace(/\s*$/, "")}${input.value.trim() ? " " : ""}@${h} `;
+    input.focus();
+  });
+  $("#profReport").addEventListener("click", () => { const n = profNick; closeProfile(); openReport({ who: n }); });
+  body.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-profile]");
+    if (t) { e.stopPropagation(); openProfile(t.dataset.profile); }
+  }, true);
+
+  // Editar mi perfil (en "Mi cuenta")
+  let pendingPhoto; // undefined = sin cambios · null = quitar · dataURL = nueva
+  function fillProfileForm() {
+    const p = profileOf(me.nick);
+    pendingPhoto = undefined;
+    $("#pfHandle").value = p.handle;
+    $("#pfAbout").value = p.about;
+    $("#pfErr").textContent = "";
+    $("#pfPhotoDel").hidden = !p.photo;
+  }
+  function paintMyAvatar(photo) {
+    const av = $("#accAvatar");
+    if (photo) { av.innerHTML = `<img src="${esc(photo)}" alt="Tu foto de perfil" />`; av.classList.add("has-photo"); }
+    else { av.textContent = initialOf(me.nick); av.classList.remove("has-photo"); }
+  }
+  $("#pfPhotoBtn").addEventListener("click", () => $("#pfPhotoFile").click());
+  $("#accAvatar").addEventListener("click", () => $("#pfPhotoFile").click());
+  $("#pfPhotoFile").addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (!f.type.startsWith("image/")) { toast("Eso no es una imagen."); return; }
+    const data = await compressImage(f, 320);
+    if (!data) { toast("No se pudo leer la foto."); return; }
+    pendingPhoto = data;
+    paintMyAvatar(data);
+    $("#pfPhotoDel").hidden = false;
+    toast("📷 Foto lista. Toca \"Guardar perfil\".");
+  });
+  $("#pfPhotoDel").addEventListener("click", () => { pendingPhoto = null; paintMyAvatar(null); $("#pfPhotoDel").hidden = true; });
+  $("#pfForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const err = $("#pfErr");
+    err.textContent = "";
+    const handle = normHandle($("#pfHandle").value);
+    const about = $("#pfAbout").value.trim();
+    if (handle.length < 3) { err.textContent = "Tu @usuario necesita mínimo 3 letras o números (sin espacios)."; return; }
+    const owner = nickByHandle(handle);
+    if (owner && owner.toLowerCase() !== me.nick.toLowerCase()) { err.textContent = `@${handle} ya lo usa ${owner}. Elige otro.`; return; }
+    if (isOffensive(`${handle} ${about}`) || hasLink(about)) { err.textContent = "🛡️ Tu perfil tiene algo que no va con las reglas."; return; }
+    const patch = { handle, about };
+    if (pendingPhoto !== undefined) patch.photo = pendingPhoto;
+    if (!saveMyProfile(patch)) { err.textContent = "No hay espacio para guardar la foto. Prueba con otra."; return; }
+    $("#pfHandle").value = handle;
+    renderMyAcc();
+    toast("✅ Perfil guardado");
+  });
+
+  /* --- @menciones: al escribir "@" salen sugerencias --- */
+  const mentionBox = $("#mentionBox");
+  function mentionToken() {
+    const pos = input.selectionStart ?? input.value.length;
+    const m = input.value.slice(0, pos).match(/(^|\s)@([\p{L}\p{N}_.]{0,20})$/u);
+    return m ? { start: pos - m[2].length - 1, end: pos, q: m[2] } : null;
+  }
+  function hideMentions() { mentionBox.hidden = true; mentionBox.innerHTML = ""; }
+  function updateMentions() {
+    const t = mentionToken();
+    if (!t || !me) { hideMentions(); return; }
+    const q = normHandle(t.q);
+    const list = knownNicks()
+      .filter((n) => n.toLowerCase() !== me.nick.toLowerCase())
+      .map((n) => ({ n, p: profileOf(n) }))
+      .filter((x) => !q || x.p.handle.includes(q) || normHandle(x.n).includes(q))
+      .slice(0, 6);
+    if (!list.length) { hideMentions(); return; }
+    mentionBox.innerHTML = list.map((x, i) => `
+      <button type="button" class="${i === 0 ? "is-first" : ""}" data-mpick="${esc(x.p.handle)}">
+        <span class="msg__av">${avatarInner(x.n, memberByNick(x.n)?.color)}</span>
+        <span><b>${esc(x.n)}</b><small>@${esc(x.p.handle)}</small></span>
+      </button>`).join("");
+    mentionBox.hidden = false;
+  }
+  function pickMention(h) {
+    const t = mentionToken();
+    if (!t) return;
+    const v = input.value;
+    input.value = `${v.slice(0, t.start)}@${h} ${v.slice(t.end)}`;
+    const c = t.start + h.length + 2;
+    input.setSelectionRange(c, c);
+    input.focus();
+    hideMentions();
+  }
+  input.addEventListener("input", updateMentions);
+  input.addEventListener("click", updateMentions);
+  input.addEventListener("blur", () => setTimeout(hideMentions, 150));
+  input.addEventListener("keydown", (e) => {
+    if (mentionBox.hidden) return;
+    if (e.key === "Enter" || e.key === "Tab") {
+      const first = $("[data-mpick]", mentionBox);
+      if (first) { e.preventDefault(); pickMention(first.dataset.mpick); }
+    } else if (e.key === "Escape") hideMentions();
+  });
+  mentionBox.addEventListener("mousedown", (e) => e.preventDefault()); // no pierde el foco del campo
+  mentionBox.addEventListener("click", (e) => { const b = e.target.closest("[data-mpick]"); if (b) pickMention(b.dataset.mpick); });
+
+  /* =====================================================
+     Stickers externos: subir PNG / WebP (los de WhatsApp) / GIF animado, o desde un enlace
+     ===================================================== */
+  const MY_STK_MAX = 40;
+  const myStickers = () => readLS("pm_my_stickers") || [];
+  function saveMyStickers(list) { try { localStorage.setItem("pm_my_stickers", JSON.stringify(list)); return true; } catch { return false; } }
+  function renderStickerGrid() {
+    const mine = myStickers();
+    $("#stickerGrid").innerHTML = `
+      <p class="stk-sec">Mis stickers <small>${mine.length}/${MY_STK_MAX}</small></p>
+      <button type="button" class="stk-add" data-stkadd><span>➕</span>Subir</button>
+      <button type="button" class="stk-add" data-stkurl><span>🔗</span>Enlace</button>
+      ${mine.map((s) => `<div class="stk-mine"><button type="button" data-mystk="${esc(s.id)}" aria-label="Enviar sticker">${stickerHtml({ img: s.src })}</button><button type="button" class="stk-del" data-mystkdel="${esc(s.id)}" aria-label="Borrar sticker">✕</button></div>`).join("")}
+      <p class="stk-sec">Stickers del parche</p>
+      ${STICKERS.map((s, i) => `<button type="button" data-sticker="${i}" aria-label="Sticker ${esc(s.t || "")}">${stickerHtml(s)}</button>`).join("")}
+      <p class="stk-note">🚫 Nada de stickers sexuales ni ofensivos (regla 03). Se pueden reportar.</p>`;
+  }
+  renderStickerGrid();
+
+  // reduce el sticker a 256 px sin perder la transparencia (los GIF se guardan tal cual para que se muevan)
+  function stickerFromFile(file) {
+    return new Promise((resolve) => {
+      if (file.type === "image/gif") {
+        if (file.size > 1.2 * 1024 * 1024) { resolve({ error: "El GIF pesa más de 1,2 MB." }); return; }
+        const fr = new FileReader();
+        fr.onload = () => resolve({ src: fr.result });
+        fr.onerror = () => resolve({ error: "No se pudo leer el GIF." });
+        fr.readAsDataURL(file);
+        return;
+      }
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, 256 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * scale));
+        c.height = Math.max(1, Math.round(img.height * scale));
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        let src = c.toDataURL("image/webp", 0.9);
+        if (!src.startsWith("data:image/webp")) src = c.toDataURL("image/png"); // Safari viejo no guarda WebP
+        resolve({ src });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve({ error: "No se pudo leer esa imagen." }); };
+      img.src = url;
+    });
+  }
+  function addMySticker(src) {
+    const list = myStickers();
+    if (list.length >= MY_STK_MAX) { toast(`Máximo ${MY_STK_MAX} stickers. Borra alguno con ✕.`); return; }
+    list.unshift({ id: `k${Date.now().toString(36)}`, src });
+    if (!saveMyStickers(list)) { toast("No hay espacio para más stickers. Borra alguno."); return; }
+    renderStickerGrid();
+    toast("✨ Sticker agregado a Mis stickers");
+  }
+  $("#stkFile").addEventListener("change", async (e) => {
+    const files = [...(e.target.files || [])];
+    e.target.value = "";
+    for (const f of files.slice(0, 10)) {
+      if (!/^image\/(png|webp|gif|jpeg)$/.test(f.type)) { toast("Usa imágenes PNG, WebP, GIF o JPG."); continue; }
+      if (f.size > 5 * 1024 * 1024) { toast("Esa imagen pesa más de 5 MB."); continue; }
+      const r = await stickerFromFile(f);
+      if (r.error) toast(r.error); else addMySticker(r.src);
+    }
+  });
+  $("#stickerGrid").addEventListener("click", (e) => {
+    const t = e.target;
+    if (t.closest("[data-stkadd]")) { if (!denied("media")) $("#stkFile").click(); return; }
+    if (t.closest("[data-stkurl]")) {
+      if (denied("media")) return;
+      const url = (prompt("Pega el enlace de la imagen del sticker (PNG, WebP o GIF):", "https://") || "").trim();
+      if (!/^https?:\/\/\S+$/i.test(url)) return;
+      const probe = new Image();
+      const timer = setTimeout(() => { probe.src = ""; toast("Ese enlace no carga. Prueba con otro."); }, 8000);
+      probe.onload = () => { clearTimeout(timer); addMySticker(url); };
+      probe.onerror = () => { clearTimeout(timer); toast("Ese enlace no es una imagen."); };
+      probe.src = url;
+      return;
+    }
+    const del = t.closest("[data-mystkdel]");
+    if (del) {
+      if (!confirm("¿Borrar este sticker de Mis stickers?")) return;
+      saveMyStickers(myStickers().filter((s) => s.id !== del.dataset.mystkdel));
+      renderStickerGrid();
+      return;
+    }
+    const mine = t.closest("[data-mystk]");
+    if (mine) {
+      if (denied("media")) return;
+      const s = myStickers().find((x) => x.id === mine.dataset.mystk);
+      if (!s) return;
+      addMsg({ who: "me", sticker: { img: s.src, t: "Sticker" } });
+      toggleMedia(false);
+      maybeReply();
+      return;
+    }
+    const b = t.closest("[data-sticker]");
+    if (!b || !me) return;
+    addMsg({ who: "me", sticker: STICKERS[+b.dataset.sticker] });
+    toggleMedia(false);
+    maybeReply();
+  });
 
   $("#joinForm").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -1802,15 +2100,7 @@
     if (b) setTab(b.dataset.tab);
   });
 
-  // Stickers
-  $("#stickerGrid").innerHTML = STICKERS.map((s, i) => `<button type="button" data-sticker="${i}" aria-label="Sticker ${esc(s.t)}">${stickerHtml(s)}</button>`).join("");
-  $("#stickerGrid").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-sticker]");
-    if (!b || !me) return;
-    addMsg({ who: "me", sticker: STICKERS[+b.dataset.sticker] });
-    toggleMedia(false);
-    maybeReply();
-  });
+  // Stickers: la cuadrícula y los stickers externos están en la sección "Stickers externos"
 
   // Barra de mensajes fijados
   $("#pinnedGo").addEventListener("click", goToPin);
