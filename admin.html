@@ -102,7 +102,11 @@
     .q__opt label { font-size: .78rem; color: var(--muted); white-space: nowrap; }
 
     .stk-rows { display: grid; gap: 8px; }
-    .stk-row { display: grid; grid-template-columns: 70px 1fr 42px; gap: 8px; }
+    .stk-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 42px 42px; gap: 8px; }
+    .stk-row__img { display: grid; place-items: center; height: 46px; border-radius: 12px; background: repeating-conic-gradient(rgba(255,255,255,.06) 0 25%, transparent 0 50%) 50% / 12px 12px; border: 1px solid var(--line); }
+    .stk-row__img img { max-width: 40px; max-height: 40px; object-fit: contain; }
+    .mem-av { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+    .mem-handle { font-size: .8rem; font-weight: 500; color: #7cc4ff; }
     .stk-row input { padding: 10px 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.12); background: rgba(0,0,0,.35); color: var(--text); font: inherit; font-size: 16px; min-width: 0; }
     .stk-row input:first-child { text-align: center; font-size: 1.3rem; }
 
@@ -449,6 +453,7 @@
           <div class="stk-rows" id="stkRows"></div>
           <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
             <button class="btn btn--ghost btn--sm" id="stkAdd">➕ Sticker</button>
+            <button class="btn btn--grad btn--sm" id="stkAddImg">🖼️ Sticker con imagen</button>
             <button class="btn btn--ghost btn--sm" id="stkReset">↺ Restaurar</button>
           </div>
         </div>
