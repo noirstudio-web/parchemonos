@@ -209,6 +209,21 @@
   if (SD.roles) SD.roles = fixRoles(SD.roles);
   if (SD.members) SD.members = fixMembers(SD.members);
 
+  // Quita SIEMPRE a los personajes de ejemplo (Mono Mod, Vale, etc.) y sus parches, estén donde estén
+  const isDemo = (n) => DEMO_NICKS.includes(String(n || "").trim().toLowerCase());
+  const DEMO_PLAN_IDS = ["s1", "s2", "s3", "s4", "s5", "s6"];
+  const cleanMembers = (l) => Array.isArray(l) ? l.filter((m) => !m.demo && !isDemo(m.nick)) : l;
+  const cleanPlans = (l) => Array.isArray(l) ? l.filter((p) => !DEMO_PLAN_IDS.includes(p.id) && !isDemo(p.author)) : l;
+  const cleanReqs = (l) => Array.isArray(l) ? l.filter((r) => !isDemo(r.nick)) : l;
+  try {
+    [["pm_members", cleanMembers], ["pm_seed_plans", cleanPlans], ["pm_plans", cleanPlans], ["pm_requests", cleanReqs]].forEach(([k, fn]) => {
+      const v = ls(k);
+      if (Array.isArray(v)) { const c = fn(v); if (c.length !== v.length) localStorage.setItem(k, JSON.stringify(c)); }
+    });
+  } catch { /* */ }
+  if (SD.members) SD.members = cleanMembers(SD.members);
+  if (SD.plans) SD.plans = cleanPlans(SD.plans);
+
   window.PM_DATA = {
     texts: { ...(SD.texts || {}), ...(ls("pm_texts") || {}) },
     imgs: { ...(SD.imgs || {}), ...(ls("pm_imgs") || {}) },
